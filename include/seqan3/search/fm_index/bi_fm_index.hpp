@@ -89,10 +89,9 @@ class bi_fm_index
 protected:
     //!\privatesection
 
-    //!\brief Pointer to the indexed text.
-    text_t const * text = nullptr;
-
 public:
+
+    text_t const * text = nullptr;
 
     /*!\name Text types
      * \{
@@ -101,6 +100,8 @@ public:
     using text_type = text_t;
     //!\brief The type of the forward indexed text.
     using rev_text_type = decltype(view::reverse(*text));
+
+
     //!\}
 
 protected:
