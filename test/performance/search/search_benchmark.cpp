@@ -101,7 +101,7 @@ void unidirectional_search(benchmark::State & state)
     uint8_t const simulated_errors = state.range(0);
     uint8_t const searched_errors = state.range(1);
     uint32_t index_length = 100000;
-    int number_of_reads = 500;
+    int number_of_reads = 100;
     uint32_t read_length = 100;
     float prob_insertion = 0.18;
     float prob_deletion = 0.18;
