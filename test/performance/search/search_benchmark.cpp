@@ -177,7 +177,7 @@ BENCHMARK(seqan2_affine_dna4);
 // ============================================================================
 //  affine; trace; dna4; single
 // ============================================================================
-
+/*
 void prepareSearch(size_t const searchedErrors, size_t const simulated_errors)
 {
     uint32_t index_length = 100000;
@@ -202,49 +202,40 @@ void prepareSearch(size_t const searchedErrors, size_t const simulated_errors)
                                                 search_cfg::insertion{searchedErrors},
                                                 search_cfg::deletion{searchedErrors}};
     
-}
+}*/
 
 void seqan3_unidirectional_search(benchmark::State & state/*, size_t const simulated_errors, size_t const searchedErrors*/)
 {
 //     typedef seqan3::dna4 dna_type;
-    uint8_t simulated_errors = 3;
-    uint8_t searchedErrors = 3;
+    uint8_t const simulated_errors = 3;
+    uint8_t const searchedErrors = 3;
+    uint8_t const searchedErrors_tmp = searchedErrors;
     uint32_t index_length = 100000;
     int number_of_Reads = 1;
     uint32_t read_length = 100;
     float probInsertion = 0.18;
     float probDeletion = 0.18;
     
-    
-    fm_index index;
-    std::vector<std::vector<seqan3::dna4> > reads;
-    configuration cfg;
-    
     auto ref = generate_sequence_seqan3<seqan3::dna4>(index_length, 0, 0);
     fm_index<std::vector<seqan3::dna4>> index{ref};
     std::vector<std::vector<seqan3::dna4> > reads;
-//     std::vector<std::vector<std::vector<seqan3::dna4> > > collection_reads;
-//     collection_reads.resize(simulated_errors + 1);
-//     for(int sE = 0; sE <= simulated_errors; ++sE){
-//         generate_reads(collection_reads[sE], ref, number_of_Reads, read_length, sE, probInsertion, probDeletion);
-//     }
     generate_reads(reads, ref, number_of_Reads, read_length, simulated_errors, probInsertion, probDeletion);
-//      std::cout << "Generated reads: " << collection_reads[0].size() << "\n";
-//     seqan3::debug_stream << "Generated reads: " << collection_reads[0][0] << "\n";
-    configuration cfg = search_cfg::max_error{search_cfg::total{searchedErrors},
-                                                search_cfg::substitution{searchedErrors},
-                                                search_cfg::insertion{searchedErrors},
-                                                search_cfg::deletion{searchedErrors}};
-    
-
+    configuration cfg = search_cfg::max_error{search_cfg::total{searchedErrors_tmp},
+                                                search_cfg::substitution{searchedErrors_tmp},
+                                                search_cfg::insertion{searchedErrors_tmp},
+                                                search_cfg::deletion{searchedErrors_tmp}};
+//     std::cout << "Searching with " << searchedErrors << "\t" << simulated_errors << "\n";
     for (auto _ : state)
     {
         auto results = search(index, reads, cfg);
     }
+    
+
+    
 }
 
-// BENCHMARK_TEMPLATE(seqan3_unidirectional_search, 3, 3)
 BENCHMARK(seqan3_unidirectional_search);
+
 /*
 #ifdef SEQAN3_HAS_SEQAN2
 
