@@ -93,45 +93,13 @@ void generate_reads(std::vector<std::vector<alphabet_t> > & reads,
 }
 
 //============================================================================
-//  undirectional; trivial_search, single, dna4, simulated_error = 1
-//============================================================================
-
-void unidirectional_search_sim_e1(benchmark::State & state)
-{
-    uint8_t const searched_errors = state.range(0);
-    uint8_t const simulated_errors = 1;
-    uint32_t index_length = 100000;
-    int number_of_reads = 500;
-    uint32_t read_length = 100;
-    float prob_insertion = 0.18;
-    float prob_deletion = 0.18;
-
-    std::vector<seqan3::dna4> ref;
-    generate_text(ref, index_length);
-    fm_index<std::vector<seqan3::dna4>> index{ref};
-    std::vector<std::vector<seqan3::dna4> > reads;
-    generate_reads(reads, ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
-    configuration cfg =  search_cfg::max_error{search_cfg::total{searched_errors}};
-
-    for (auto _ : state)
-    {
-        auto results = search(index, reads, cfg);
-    }
-}
-
-BENCHMARK(unidirectional_search_sim_e1)
-    ->Arg(1)
-    ->Arg(2)
-    ->Arg(3);
-
-//============================================================================
 //  undirectional; trivial_search, single, dna4, searched_error = 3
 //============================================================================
 
-void unidirectional_search_e3(benchmark::State & state)
+void unidirectional_search(benchmark::State & state)
 {
-    uint8_t const searched_errors = 3;
     uint8_t const simulated_errors = state.range(0);
+    uint8_t const searched_errors = state.range(1);
     uint32_t index_length = 100000;
     int number_of_reads = 500;
     uint32_t read_length = 100;
@@ -151,10 +119,13 @@ void unidirectional_search_e3(benchmark::State & state)
     }
 }
 
-BENCHMARK(unidirectional_search_e3)
-    ->Arg(1)
-    ->Arg(2)
-    ->Arg(3);
+BENCHMARK(unidirectional_search)
+    ->Args({0, 1})
+    ->Args({1, 1})
+    ->Args({0, 3})
+    ->Args({1, 3})
+    ->Args({2, 3})
+    ->Args({3, 3});
     
 // ============================================================================
 //  instantiate tests
