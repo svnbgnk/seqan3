@@ -11,7 +11,6 @@
 #include "helper.hpp"
 
 #include <seqan3/search/algorithm/all.hpp>
-
 #include <gtest/gtest.h>
 
 using namespace seqan3;
@@ -254,6 +253,21 @@ TYPED_TEST(search_test, error_levenshtein)
     {
         configuration const cfg = max_error{total{2}};
         EXPECT_EQ(uniquify(search(this->index, "CCGT"_dna4, cfg)), (hits_result_t{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+    }
+}
+
+TYPED_TEST(search_test, error_indel_no_substitution)
+{
+    using hits_result_t = std::vector<typename TypeParam::size_type>;
+
+    {
+        configuration const cfg = max_error{total{2}, deletion{2}, insertion{2}};
+        EXPECT_EQ(uniquify(search(this->index, "GTACCTAC"_dna4, cfg)), (hits_result_t{2}));
+    }
+
+    {
+        configuration const cfg = max_error{total{3}, deletion{3}, insertion{3}};
+        EXPECT_EQ(uniquify(search(this->index, "GTATCCTAC"_dna4, cfg)), (hits_result_t{2}));
     }
 }
 
