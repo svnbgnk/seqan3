@@ -69,8 +69,6 @@ public:
     T index{text};
 };
 
-
-
 template<Alphabet alphabet_t>
 void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
     std::mt19937 gen(seed);
@@ -151,6 +149,7 @@ TYPED_TEST_CASE(search_random_test, fm_index_types);
 TYPED_TEST_CASE(search_test, fm_index_types);
 TYPED_TEST_CASE(search_string_test, fm_index_string_types);
 
+#ifdef NDEBUG
 TYPED_TEST(search_random_test, error_hamming)
 {
     using namespace search_cfg;
@@ -227,6 +226,7 @@ TYPED_TEST(search_random_test, error_levenshtein)
     }
     EXPECT_EQ(not_found, false);
 }
+#endif
 
 TYPED_TEST(search_test, error_free)
 {
