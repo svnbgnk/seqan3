@@ -61,8 +61,7 @@ void mutate_substitution(std::vector<alphabet_t> & seq, size_t const overlap, si
 }
 
 template<Alphabet alphabet_t>
-void generate_reads(std::vector<std::vector<alphabet_t> > & reads,
-                    std::vector<alphabet_t> & ref,
+auto generate_reads(std::vector<alphabet_t> & ref,
                     size_t const number_of_reads,
                     size_t const read_length,
                     size_t const simulated_errors,
@@ -70,6 +69,7 @@ void generate_reads(std::vector<std::vector<alphabet_t> > & reads,
                     float const prob_deletion,
                     size_t const seed = 0)
 {
+    std::vector<std::vector<alphabet_t> > reads;
     std::mt19937 gen(seed);
     std::uniform_int_distribution<size_t> seeds (0, SIZE_MAX);
     std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(ref) - read_length - simulated_errors);
@@ -99,6 +99,7 @@ void generate_reads(std::vector<std::vector<alphabet_t> > & reads,
         read_tmp.erase(read_tmp.begin() + read_length, read_tmp.end());
         reads.push_back(read_tmp);
     }
+    return reads;
 }
 
 //============================================================================
@@ -117,8 +118,7 @@ void unidirectional_search(benchmark::State & state)
 
     std::vector<seqan3::dna4> ref = generate_sequence_seqan3<seqan3::dna4>(reference_length);
     fm_index<std::vector<seqan3::dna4> > index{ref};
-    std::vector<std::vector<seqan3::dna4> > reads;
-    generate_reads(reads, ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+    std::vector<std::vector<seqan3::dna4> > reads = generate_reads(reads, ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
     configuration cfg = search_cfg::max_error{search_cfg::total{searched_errors}};
 
     for (auto _ : state)
