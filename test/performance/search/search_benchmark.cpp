@@ -6,11 +6,10 @@
 // -----------------------------------------------------------------------------------------------------
 
 #include <benchmark/benchmark.h>
-#include <seqan3/io/stream/debug_stream.hpp>
 #include <seqan3/alphabet/aminoacid/aa20.hpp>
 #include <seqan3/alphabet/nucleotide/dna4.hpp>
 #include <seqan3/search/algorithm/all.hpp>
-//
+
 using namespace seqan3;
 
 template <Alphabet alphabet_t>
@@ -118,7 +117,7 @@ void unidirectional_search(benchmark::State & state)
 
     std::vector<seqan3::dna4> ref = generate_sequence_seqan3<seqan3::dna4>(reference_length);
     fm_index<std::vector<seqan3::dna4> > index{ref};
-    std::vector<std::vector<seqan3::dna4> > reads = generate_reads(reads, ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+    std::vector<std::vector<seqan3::dna4> > reads = generate_reads(ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
     configuration cfg = search_cfg::max_error{search_cfg::total{searched_errors}};
 
     for (auto _ : state)
