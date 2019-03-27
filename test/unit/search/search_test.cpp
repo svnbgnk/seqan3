@@ -17,22 +17,6 @@ using namespace seqan3;
 using namespace seqan3::search_cfg;
 using namespace std::string_literals;
 
-template <typename T>
-class search_test : public ::testing::Test
-{
-public:
-    std::vector<dna4> text{"ACGTACGTACGT"_dna4};
-    T index{text};
-};
-
-template <typename T>
-class search_string_test : public ::testing::Test
-{
-public:
-    std::string text{"Garfield the fat cat."};
-    T index{text};
-};
-
 template <Alphabet alphabet_t>
 auto generate_sequence_seqan3(size_t const len = 500,
                               size_t const variance = 0,
@@ -50,6 +34,33 @@ auto generate_sequence_seqan3(size_t const len = 500,
 
     return sequence;
 }
+
+template <typename T>
+class search_test : public ::testing::Test
+{
+public:
+    std::vector<dna4> text{"ACGTACGTACGT"_dna4};
+    T index{text};
+};
+
+template <typename T>
+class search_random_test : public ::testing::Test
+{
+public:
+    std::vector<dna4> text = generate_sequence_seqan3<seqan3::dna4>(106);
+    T index{text};
+};
+
+
+template <typename T>
+class search_string_test : public ::testing::Test
+{
+public:
+    std::string text{"Garfield the fat cat."};
+    T index{text};
+};
+
+
 
 template<Alphabet alphabet_t>
 void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
@@ -84,7 +95,7 @@ template<Alphabet alphabet_t>
 auto generate_reads(std::vector<alphabet_t> & ref,
                     size_t const number_of_reads,
                     size_t const read_length,
-                    auto const max_error,
+                    size_t const simulated_errors,
                     float const prob_insertion,
                     float const prob_deletion,
                     size_t const seed = 0)
@@ -93,14 +104,15 @@ auto generate_reads(std::vector<alphabet_t> & ref,
     std::mt19937 gen(seed);
     std::uniform_int_distribution<size_t> seeds (0, SIZE_MAX);
     std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(ref) - read_length - simulated_errors);
+    std::uniform_real_distribution<double> probability(0.0, 1.0);
     for (size_t i = 0; i < number_of_reads; ++i){
         size_t rpos = random_pos(gen);
         std::vector<alphabet_t> read_tmp{ref.begin() + rpos,
-            ref.begin() + rpos + read_length + max_error.deletion};
-        while (max_error.total)
+            ref.begin() + rpos + read_length + simulated_errors};
+        for (size_t j = 0; j < simulated_errors; ++j)
         {
+            double prob = probability(gen);
             //Substitution
-            float prob = (float) rand()/RAND_MAX;
             if (prob_insertion + prob_deletion < prob)
             {
                 mutate_substitution(read_tmp, simulated_errors, seeds(gen));
@@ -126,24 +138,80 @@ auto generate_reads(std::vector<alphabet_t> & ref,
 using fm_index_types        = ::testing::Types<fm_index<std::vector<dna4>>, bi_fm_index<std::vector<dna4>>>;
 using fm_index_string_types = ::testing::Types<fm_index<std::string>, bi_fm_index<std::string>>;
 
+TYPED_TEST_CASE(search_random_test, fm_index_types);
 TYPED_TEST_CASE(search_test, fm_index_types);
 TYPED_TEST_CASE(search_string_test, fm_index_string_types);
 
-TYPED_TEST(search_test, error_levenshtein)
+TYPED_TEST(search_random_test, error_hamming)
 {
-    using hits_result_t = std::vector<typename TypeParam::size_type>;
     using namespace search_cfg;
-    configuration cfg = max_error{total{3}, deletion{3}, insertion{3}, substitution{3}};
-    
-    {
-        configuration const cfg = max_error{total{1}};
-        EXPECT_EQ(uniquify(search(this->index, "CCGT"_dna4, cfg)), (hits_result_t{0, 1, 4, 5, 8, 9}));
-    }
 
-    {
-        configuration const cfg = max_error{total{2}};
-        EXPECT_EQ(uniquify(search(this->index, "CCGT"_dna4, cfg)), (hits_result_t{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+    uint8_t const simulated_errors = 3;
+    int number_of_reads{1000};
+    size_t read_length{std::ranges::size(this->text) - simulated_errors};
+    float prob_insertion{0.0};
+    float prob_deletion{0.0};
+    bool not_found{false};
+    
+    for(uint8_t e = 0; e < simulated_errors; ++e){
+        configuration cfg = max_error{total{simulated_errors}, substitution{simulated_errors}};
+        std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+        for(auto & read : reads)
+        {
+            auto results = search(this->index, read, cfg);
+            if(results.size() == 0)
+                not_found = true;
+        }
     }
+    EXPECT_EQ(not_found, false);
+}
+
+TYPED_TEST(search_random_test, error_indels)
+{
+    using namespace search_cfg;
+    
+    uint8_t const simulated_errors = 3;
+    int number_of_reads{1000};
+    size_t read_length{std::ranges::size(this->text) - simulated_errors};
+    float prob_insertion{0.5};
+    float prob_deletion{0.5};
+    bool not_found{false};
+    
+    for(uint8_t e = 1; e < simulated_errors; ++e){
+        configuration cfg = max_error{total{simulated_errors}, deletion{simulated_errors}, insertion{simulated_errors}};
+        std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+        for(auto & read : reads)
+        {
+            auto results = search(this->index, read, cfg);
+            if(results.size() == 0)
+                not_found = true;
+        }
+    }
+    EXPECT_EQ(not_found, false);
+}
+
+TYPED_TEST(search_random_test, error_levenshtein)
+{
+    using namespace search_cfg;
+    
+    uint8_t const simulated_errors = 3;
+    int number_of_reads{1000};
+    size_t read_length{std::ranges::size(this->text) - simulated_errors};
+    float prob_insertion{0.33};
+    float prob_deletion{0.33};
+    bool not_found{false};
+
+    for(uint8_t e = 1; e < simulated_errors; ++e){
+        configuration cfg = max_error{total{simulated_errors}, deletion{simulated_errors}, insertion{simulated_errors}, substitution{simulated_errors}};
+        std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+        for(auto & read : reads)
+        {
+            auto results = search(this->index, read, cfg);
+            if(results.size() == 0)
+                not_found = true;
+        }
+    }
+    EXPECT_EQ(not_found, false);
 }
 
 TYPED_TEST(search_test, error_free)
