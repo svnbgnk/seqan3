@@ -149,17 +149,17 @@ TYPED_TEST_CASE(search_random_test, fm_index_types);
 TYPED_TEST_CASE(search_test, fm_index_types);
 TYPED_TEST_CASE(search_string_test, fm_index_string_types);
 
-#ifdef NDEBUG
+#ifndef NDEBUG
 TYPED_TEST(search_random_test, error_hamming)
 {
     using namespace search_cfg;
 
     uint8_t const simulated_errors = 3;
-    int number_of_reads{100};
+    int number_of_reads{50};
     size_t read_length{std::ranges::size(this->text_collection[0]) - simulated_errors};
     float prob_insertion{0.0};
     float prob_deletion{0.0};
-    bool not_found{false};
+    bool did_not_find_every_read{false};
     for(size_t t = 0; t < std::ranges::size(this->text_collection); ++t){
         for(uint8_t e = 0; e < simulated_errors; ++e){
             configuration cfg = max_error{total{simulated_errors}, substitution{simulated_errors}};
@@ -168,11 +168,11 @@ TYPED_TEST(search_random_test, error_hamming)
             {
                 auto results = search(this->indeces[t], read, cfg);
                 if(results.size() == 0)
-                    not_found = true;
+                    did_not_find_every_read = true;
             }
         }
     }
-    EXPECT_EQ(not_found, false);
+    EXPECT_EQ(did_not_find_every_read, false);
 }
 
 TYPED_TEST(search_random_test, error_indels)
@@ -180,25 +180,49 @@ TYPED_TEST(search_random_test, error_indels)
     using namespace search_cfg;
     
     uint8_t const simulated_errors = 3;
-    int number_of_reads{100};
+    int number_of_reads{50};
     size_t read_length{std::ranges::size(this->text_collection[0]) - simulated_errors};
     float prob_insertion{0.5};
     float prob_deletion{0.5};
-    bool not_found{false};
+    bool did_not_find_every_read{false};
     
     for(size_t t = 0; t < std::ranges::size(this->text_collection); ++t){
         for(uint8_t e = 1; e < simulated_errors; ++e){
-            configuration cfg = max_error{total{simulated_errors}, deletion{simulated_errors}, insertion{simulated_errors}};
+            configuration cfg = max_error{total{simulated_errors}, deletion{simulated_errors}, insertion{simulated_errors}, substitution{0}};
             std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text_collection[t], number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
             for(auto & read : reads)
             {
                 auto results = search(this->indeces[t], read, cfg);
                 if(results.size() == 0)
-                    not_found = true;
+                    did_not_find_every_read = true;
             }
         }
     }
-    EXPECT_EQ(not_found, false);
+    EXPECT_EQ(did_not_find_every_read, false);
+}
+
+TYPED_TEST(search_random_test, error_indels_with_mismatches)
+{
+    using namespace search_cfg;
+    
+    uint8_t const simulated_errors = 1;
+    int number_of_reads{10};
+    size_t read_length{std::ranges::size(this->text_collection[0]) - simulated_errors};
+    float prob_insertion{0.0};
+    float prob_deletion{0.0};
+    bool did_not_find_every_read{false};
+    
+    for(size_t t = 0; t < std::ranges::size(this->text_collection); ++t){
+        configuration cfg = max_error{total{2}, deletion{2}, insertion{2}, substitution{0}};
+        std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text_collection[t], number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+        for(auto & read : reads)
+        {
+            auto results = search(this->indeces[t], read, cfg);
+            if(results.size() == 0)
+                did_not_find_every_read = true;
+        }
+    }
+    EXPECT_EQ(did_not_find_every_read, false);
 }
 
 TYPED_TEST(search_random_test, error_levenshtein)
@@ -206,11 +230,11 @@ TYPED_TEST(search_random_test, error_levenshtein)
     using namespace search_cfg;
     
     uint8_t const simulated_errors = 3;
-    int number_of_reads{100};
+    int number_of_reads{50};
     size_t read_length{std::ranges::size(this->text_collection[0]) - simulated_errors};
     float prob_insertion{0.33};
     float prob_deletion{0.33};
-    bool not_found{false};
+    bool did_not_find_every_read{false};
 
     for(size_t t = 0; t < std::ranges::size(this->text_collection); ++t){
         for(uint8_t e = 1; e < simulated_errors; ++e){
@@ -220,11 +244,11 @@ TYPED_TEST(search_random_test, error_levenshtein)
             {
                 auto results = search(this->indeces[t], read, cfg);
                 if(results.size() == 0)
-                    not_found = true;
+                    did_not_find_every_read = true;
             }
         }
     }
-    EXPECT_EQ(not_found, false);
+    EXPECT_EQ(did_not_find_every_read, false);
 }
 #endif
 
@@ -450,13 +474,13 @@ TYPED_TEST(search_test, error_indel_no_substitution)
     using hits_result_t = std::vector<typename TypeParam::size_type>;
 
     {
-        configuration const cfg = max_error{total{2}, deletion{2}, insertion{2}};
-        EXPECT_EQ(uniquify(search(this->index, "GTACCTAC"_dna4, cfg)), (hits_result_t{2}));
+        configuration const cfg = max_error{total{2}, deletion{2}, insertion{2}, substitution{0}};
+        EXPECT_EQ(uniquify(search(this->index, "GTATGTAC"_dna4, cfg)), (hits_result_t{2}));
     }
 
     {
-        configuration const cfg = max_error{total{3}, deletion{3}, insertion{3}};
-        EXPECT_EQ(uniquify(search(this->index, "GTATCCTAC"_dna4, cfg)), (hits_result_t{2}));
+        configuration const cfg = max_error{total{3}, deletion{3}, insertion{3}, substitution{0}};
+        EXPECT_EQ(uniquify(search(this->index, "GTATTAC"_dna4, cfg)), (hits_result_t{2, 6}));
     }
 }
 
