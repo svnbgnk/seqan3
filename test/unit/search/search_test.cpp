@@ -33,11 +33,118 @@ public:
     T index{text};
 };
 
+template <Alphabet alphabet_t>
+auto generate_sequence_seqan3(size_t const len = 500,
+                              size_t const variance = 0,
+                              size_t const seed = 0)
+{
+    std::mt19937 gen(seed);
+    std::uniform_int_distribution<uint8_t> dis_alpha(0, alphabet_size_v<alphabet_t> - 1);
+    std::uniform_int_distribution<size_t> dis_length(len - variance, len + variance);
+
+    std::vector<alphabet_t> sequence;
+
+    size_t length = dis_length(gen);
+    for (size_t l = 0; l < length; ++l)
+        sequence.push_back(alphabet_t{}.assign_rank(dis_alpha(gen)));
+
+    return sequence;
+}
+
+template<Alphabet alphabet_t>
+void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
+    std::mt19937 gen(seed);
+    std::uniform_int_distribution<uint8_t> dis_alpha(0, alphabet_size_v<alphabet_t> - 1);
+    std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(seq) - overlap);
+    alphabet_t cbase;
+    seq.insert(seq.begin() + random_pos(gen), alphabet_t{}.assign_rank(dis_alpha(gen)));
+}
+
+template<Alphabet alphabet_t>
+void mutate_deletion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
+    std::mt19937 gen(seed);
+    std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(seq) - overlap);
+    seq.erase(seq.begin() + random_pos(gen));
+}
+
+template<Alphabet alphabet_t>
+void mutate_substitution(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
+    std::mt19937 gen(seed);
+    std::uniform_int_distribution<uint8_t> dis_alpha_short(0, alphabet_size_v<alphabet_t> - 2);
+    std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(seq) - overlap);
+    alphabet_t & cbase = seq[random_pos(gen)];
+    uint8_t crank = to_rank(cbase);
+    uint8_t rrank = dis_alpha_short(gen);
+    if (rrank >=  crank)
+        ++rrank;
+    cbase.assign_rank(rrank);
+}
+
+template<Alphabet alphabet_t>
+auto generate_reads(std::vector<alphabet_t> & ref,
+                    size_t const number_of_reads,
+                    size_t const read_length,
+                    auto const max_error,
+                    float const prob_insertion,
+                    float const prob_deletion,
+                    size_t const seed = 0)
+{
+    std::vector<std::vector<alphabet_t> > reads;
+    std::mt19937 gen(seed);
+    std::uniform_int_distribution<size_t> seeds (0, SIZE_MAX);
+    std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(ref) - read_length - simulated_errors);
+    for (size_t i = 0; i < number_of_reads; ++i){
+        size_t rpos = random_pos(gen);
+        std::vector<alphabet_t> read_tmp{ref.begin() + rpos,
+            ref.begin() + rpos + read_length + max_error.deletion};
+        while (max_error.total)
+        {
+            //Substitution
+            float prob = (float) rand()/RAND_MAX;
+            if (prob_insertion + prob_deletion < prob)
+            {
+                mutate_substitution(read_tmp, simulated_errors, seeds(gen));
+            }
+            //Insertion
+            else if (prob_insertion < prob)
+            {
+                mutate_insertion(read_tmp, simulated_errors, seeds(gen));
+            }
+            //Deletion
+            else
+            {
+                mutate_deletion(read_tmp, simulated_errors, seeds(gen));
+            }
+        }
+        read_tmp.erase(read_tmp.begin() + read_length, read_tmp.end());
+        reads.push_back(read_tmp);
+    }
+    return reads;
+}
+
+
 using fm_index_types        = ::testing::Types<fm_index<std::vector<dna4>>, bi_fm_index<std::vector<dna4>>>;
 using fm_index_string_types = ::testing::Types<fm_index<std::string>, bi_fm_index<std::string>>;
 
 TYPED_TEST_CASE(search_test, fm_index_types);
 TYPED_TEST_CASE(search_string_test, fm_index_string_types);
+
+TYPED_TEST(search_test, error_levenshtein)
+{
+    using hits_result_t = std::vector<typename TypeParam::size_type>;
+    using namespace search_cfg;
+    configuration cfg = max_error{total{3}, deletion{3}, insertion{3}, substitution{3}};
+    
+    {
+        configuration const cfg = max_error{total{1}};
+        EXPECT_EQ(uniquify(search(this->index, "CCGT"_dna4, cfg)), (hits_result_t{0, 1, 4, 5, 8, 9}));
+    }
+
+    {
+        configuration const cfg = max_error{total{2}};
+        EXPECT_EQ(uniquify(search(this->index, "CCGT"_dna4, cfg)), (hits_result_t{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+    }
+}
 
 TYPED_TEST(search_test, error_free)
 {
