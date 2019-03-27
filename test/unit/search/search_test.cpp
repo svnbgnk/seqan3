@@ -47,8 +47,17 @@ template <typename T>
 class search_random_test : public ::testing::Test
 {
 public:
-    std::vector<dna4> text = generate_sequence_seqan3<seqan3::dna4>(106);
-    T index{text};
+    std::vector<std::vector<dna4> > text_collection;
+    std::vector<T> indeces;
+    
+    search_random_test(){
+        for(int i = 0; i < 10; ++i)
+        {
+            text_collection.push_back(generate_sequence_seqan3<seqan3::dna4>(106));
+            T index{text_collection.back()};
+            indeces.push_back(index);
+        }
+    }
 };
 
 
@@ -147,20 +156,21 @@ TYPED_TEST(search_random_test, error_hamming)
     using namespace search_cfg;
 
     uint8_t const simulated_errors = 3;
-    int number_of_reads{1000};
-    size_t read_length{std::ranges::size(this->text) - simulated_errors};
+    int number_of_reads{100};
+    size_t read_length{std::ranges::size(this->text_collection[0]) - simulated_errors};
     float prob_insertion{0.0};
     float prob_deletion{0.0};
     bool not_found{false};
-    
-    for(uint8_t e = 0; e < simulated_errors; ++e){
-        configuration cfg = max_error{total{simulated_errors}, substitution{simulated_errors}};
-        std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
-        for(auto & read : reads)
-        {
-            auto results = search(this->index, read, cfg);
-            if(results.size() == 0)
-                not_found = true;
+    for(size_t t = 0; t < std::ranges::size(this->text_collection); ++t){
+        for(uint8_t e = 0; e < simulated_errors; ++e){
+            configuration cfg = max_error{total{simulated_errors}, substitution{simulated_errors}};
+            std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text_collection[t], number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+            for(auto & read : reads)
+            {
+                auto results = search(this->indeces[t], read, cfg);
+                if(results.size() == 0)
+                    not_found = true;
+            }
         }
     }
     EXPECT_EQ(not_found, false);
@@ -171,20 +181,22 @@ TYPED_TEST(search_random_test, error_indels)
     using namespace search_cfg;
     
     uint8_t const simulated_errors = 3;
-    int number_of_reads{1000};
-    size_t read_length{std::ranges::size(this->text) - simulated_errors};
+    int number_of_reads{100};
+    size_t read_length{std::ranges::size(this->text_collection[0]) - simulated_errors};
     float prob_insertion{0.5};
     float prob_deletion{0.5};
     bool not_found{false};
     
-    for(uint8_t e = 1; e < simulated_errors; ++e){
-        configuration cfg = max_error{total{simulated_errors}, deletion{simulated_errors}, insertion{simulated_errors}};
-        std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
-        for(auto & read : reads)
-        {
-            auto results = search(this->index, read, cfg);
-            if(results.size() == 0)
-                not_found = true;
+    for(size_t t = 0; t < std::ranges::size(this->text_collection); ++t){
+        for(uint8_t e = 1; e < simulated_errors; ++e){
+            configuration cfg = max_error{total{simulated_errors}, deletion{simulated_errors}, insertion{simulated_errors}};
+            std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text_collection[t], number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+            for(auto & read : reads)
+            {
+                auto results = search(this->indeces[t], read, cfg);
+                if(results.size() == 0)
+                    not_found = true;
+            }
         }
     }
     EXPECT_EQ(not_found, false);
@@ -195,20 +207,22 @@ TYPED_TEST(search_random_test, error_levenshtein)
     using namespace search_cfg;
     
     uint8_t const simulated_errors = 3;
-    int number_of_reads{1000};
-    size_t read_length{std::ranges::size(this->text) - simulated_errors};
+    int number_of_reads{100};
+    size_t read_length{std::ranges::size(this->text_collection[0]) - simulated_errors};
     float prob_insertion{0.33};
     float prob_deletion{0.33};
     bool not_found{false};
 
-    for(uint8_t e = 1; e < simulated_errors; ++e){
-        configuration cfg = max_error{total{simulated_errors}, deletion{simulated_errors}, insertion{simulated_errors}, substitution{simulated_errors}};
-        std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
-        for(auto & read : reads)
-        {
-            auto results = search(this->index, read, cfg);
-            if(results.size() == 0)
-                not_found = true;
+    for(size_t t = 0; t < std::ranges::size(this->text_collection); ++t){
+        for(uint8_t e = 1; e < simulated_errors; ++e){
+            configuration cfg = max_error{total{simulated_errors}, deletion{simulated_errors}, insertion{simulated_errors}, substitution{simulated_errors}};
+            std::vector<std::vector<seqan3::dna4> > reads = generate_reads(this->text_collection[t], number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+            for(auto & read : reads)
+            {
+                auto results = search(this->indeces[t], read, cfg);
+                if(results.size() == 0)
+                    not_found = true;
+            }
         }
     }
     EXPECT_EQ(not_found, false);
