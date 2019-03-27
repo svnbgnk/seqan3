@@ -13,7 +13,7 @@
 //
 using namespace seqan3;
 
-template <typename alphabet_t>
+template <Alphabet alphabet_t>
 auto generate_sequence_seqan3(size_t const len = 500,
                               size_t const variance = 0,
                               size_t const seed = 0)
@@ -31,40 +31,39 @@ auto generate_sequence_seqan3(size_t const len = 500,
     return sequence;
 }
 
-template<typename alphabet_t>
+template<Alphabet alphabet_t>
 void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
     std::mt19937 gen(seed);
     std::uniform_int_distribution<uint8_t> dis_alpha(0, alphabet_size_v<alphabet_t> - 1);
-    std::uniform_int_distribution<size_t> random_pos(0, seq.size() - overlap);
+    std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(seq) - overlap);
     alphabet_t cbase;
-    cbase.assign_rank(dis_alpha(gen));
-    seq.insert(seq.begin() + random_pos(gen), cbase);
+    seq.insert(seq.begin() + random_pos(gen), alphabet_t{}.assign_rank(dis_alpha(gen)));
 }
 
-template<typename alphabet_t>
+template<Alphabet alphabet_t>
 void mutate_deletion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
     std::mt19937 gen(seed);
-    std::uniform_int_distribution<size_t> random_pos(0, seq.size() - overlap);
+    std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(seq) - overlap);
     seq.erase(seq.begin() + random_pos(gen));
 }
 
-template<typename alphabet_t>
+template<Alphabet alphabet_t>
 void mutate_substitution(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
     std::mt19937 gen(seed);
     std::uniform_int_distribution<uint8_t> dis_alpha_short(0, alphabet_size_v<alphabet_t> - 2);
-    std::uniform_int_distribution<size_t> random_pos(0, seq.size() - overlap);
+    std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(seq) - overlap);
     alphabet_t & cbase = seq[random_pos(gen)];
     uint8_t crank = to_rank(cbase);
     uint8_t rrank = dis_alpha_short(gen);
-    if(rrank >=  crank)
+    if (rrank >=  crank)
         ++rrank;
     cbase.assign_rank(rrank);
 }
 
-template<typename alphabet_t>
+template<Alphabet alphabet_t>
 void generate_reads(std::vector<std::vector<alphabet_t> > & reads,
                     std::vector<alphabet_t> & ref,
-                    size_t const number_of_Reads,
+                    size_t const number_of_reads,
                     size_t const read_length,
                     size_t const simulated_errors,
                     float const prob_insertion,
@@ -73,21 +72,21 @@ void generate_reads(std::vector<std::vector<alphabet_t> > & reads,
 {
     std::mt19937 gen(seed);
     std::uniform_int_distribution<size_t> seeds (0, SIZE_MAX);
-    std::uniform_int_distribution<size_t> random_pos(0, ref.size() - read_length - simulated_errors);
-    for(size_t i = 0; i < number_of_Reads; ++i){
-        size_t rpos = random_pos(gen);//rand() % (ref.size() - read_length - simulated_errors);
+    std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(ref) - read_length - simulated_errors);
+    for (size_t i = 0; i < number_of_reads; ++i){
+        size_t rpos = random_pos(gen);
         std::vector<alphabet_t> read_tmp{ref.begin() + rpos,
             ref.begin() + rpos + read_length + simulated_errors};
-        for(size_t j = 0; j < simulated_errors; ++j)
+        for (size_t j = 0; j < simulated_errors; ++j)
         {
             //Substitution
             float prob = (float) rand()/RAND_MAX;
-            if(prob_insertion + prob_deletion < prob)
+            if (prob_insertion + prob_deletion < prob)
             {
                 mutate_substitution(read_tmp, simulated_errors, seeds(gen));
             }
             //Insertion
-            else if(prob_insertion < prob)
+            else if (prob_insertion < prob)
             {
                 mutate_insertion(read_tmp, simulated_errors, seeds(gen));
             }
@@ -110,9 +109,9 @@ void unidirectional_search(benchmark::State & state)
 {
     uint8_t const simulated_errors = state.range(0);
     uint8_t const searched_errors = state.range(1);
-    uint32_t reference_length{100'000};
+    size_t reference_length{100'000};
     int number_of_reads{100};
-    uint32_t read_length{100};
+    size_t read_length{100};
     float prob_insertion{0.18};
     float prob_deletion{0.18};
 
@@ -120,8 +119,8 @@ void unidirectional_search(benchmark::State & state)
     fm_index<std::vector<seqan3::dna4> > index{ref};
     std::vector<std::vector<seqan3::dna4> > reads;
     generate_reads(reads, ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
-    configuration cfg =  search_cfg::max_error{search_cfg::total{searched_errors}};
-    
+    configuration cfg = search_cfg::max_error{search_cfg::total{searched_errors}};
+
     for (auto _ : state)
     {
         auto results = search(index, reads, cfg);
@@ -135,7 +134,7 @@ BENCHMARK(unidirectional_search)
     ->Args({1, 3})
     ->Args({2, 3})
     ->Args({3, 3});
-    
+
 // ============================================================================
 //  instantiate tests
 // ============================================================================
