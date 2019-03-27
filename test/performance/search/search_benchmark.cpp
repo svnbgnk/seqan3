@@ -87,8 +87,8 @@ void generate_reads(std::vector<std::vector<alphabet_t> > & reads,
                 mutate_deletion(read_tmp, simulated_errors);
             }
         }
-        std::vector<alphabet_t>  read{read_tmp.begin(), read_tmp.begin() + read_length};
-        reads.push_back(read);
+        read_tmp.erase(read_tmp.begin() + read_length, read_tmp.end());
+        reads.push_back(read_tmp);
     }
 }
 
@@ -100,14 +100,14 @@ void unidirectional_search(benchmark::State & state)
 {
     uint8_t const simulated_errors = state.range(0);
     uint8_t const searched_errors = state.range(1);
-    uint32_t index_length = 100000;
-    int number_of_reads = 100;
-    uint32_t read_length = 100;
-    float prob_insertion = 0.18;
-    float prob_deletion = 0.18;
+    uint32_t reference_length{100'000};
+    int number_of_reads{100};
+    uint32_t read_length{100};
+    float prob_insertion{0.18};
+    float prob_deletion{0.18};
 
     std::vector<seqan3::dna4> ref;
-    generate_text(ref, index_length);
+    generate_text(ref, reference_length);
     fm_index<std::vector<seqan3::dna4> > index{ref};
     std::vector<std::vector<seqan3::dna4> > reads;
     generate_reads(reads, ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
