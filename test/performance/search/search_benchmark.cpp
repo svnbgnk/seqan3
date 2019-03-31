@@ -40,7 +40,8 @@ void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_
 }
 
 template<Alphabet alphabet_t>
-void mutate_deletion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
+void mutate_deletion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0)
+{
     std::mt19937 gen(seed);
     std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(seq) - overlap);
     seq.erase(seq.begin() + random_pos(gen));
