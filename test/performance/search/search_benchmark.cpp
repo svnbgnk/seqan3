@@ -74,7 +74,8 @@ auto generate_reads(std::vector<alphabet_t> & ref,
     std::uniform_int_distribution<size_t> seeds (0, SIZE_MAX);
     std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(ref) - read_length - simulated_errors);
     std::uniform_real_distribution<double> probability(0.0, 1.0);
-    for (size_t i = 0; i < number_of_reads; ++i){
+    for (size_t i = 0; i < number_of_reads; ++i)
+    {
         size_t rpos = random_pos(gen);
         std::vector<alphabet_t> read_tmp{ref.begin() + rpos,
             ref.begin() + rpos + read_length + simulated_errors};
