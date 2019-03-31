@@ -60,7 +60,7 @@ void mutate_substitution(std::vector<alphabet_t> & seq, size_t const overlap, si
     cbase.assign_rank(rrank);
 }
 
-template<Alphabet alphabet_t>
+template <Alphabet alphabet_t>
 auto generate_reads(std::vector<alphabet_t> & ref,
                     size_t const number_of_reads,
                     size_t const read_length,
