@@ -30,7 +30,7 @@ auto generate_sequence_seqan3(size_t const len = 500,
     return sequence;
 }
 
-template<Alphabet alphabet_t>
+template <Alphabet alphabet_t>
 void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
     std::mt19937 gen(seed);
     std::uniform_int_distribution<uint8_t> dis_alpha(0, alphabet_size_v<alphabet_t> - 1);
