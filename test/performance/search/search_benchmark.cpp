@@ -49,7 +49,8 @@ void mutate_deletion(std::vector<alphabet_t> & seq, size_t const overlap, size_t
 }
 
 template <Alphabet alphabet_t>
-void mutate_substitution(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0){
+void mutate_substitution(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0)
+{
     std::mt19937 gen(seed);
     std::uniform_int_distribution<uint8_t> dis_alpha_short(0, alphabet_size_v<alphabet_t> - 2);
     std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(seq) - overlap);
