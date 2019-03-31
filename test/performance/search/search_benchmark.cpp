@@ -39,7 +39,7 @@ void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_
     seq.insert(seq.begin() + random_pos(gen), alphabet_t{}.assign_rank(dis_alpha(gen)));
 }
 
-template<Alphabet alphabet_t>
+template <Alphabet alphabet_t>
 void mutate_deletion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0)
 {
     std::mt19937 gen(seed);
