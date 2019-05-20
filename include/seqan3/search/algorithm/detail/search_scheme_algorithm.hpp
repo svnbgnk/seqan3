@@ -388,6 +388,7 @@ inline bool search_ss(cursor_t cur, query_t & query,
                       blocks_length_t const & blocks_length, search_param const error_left, ErrorCode memory_right,
                       ErrorCode memory_left, delegate_t && delegate)
 {
+//     debug_stream << "lb: " << lb << "\trb: " << rb << "\n";
     uint8_t const max_error_left_in_block = search.u[block_id] - errors_spent;
     uint8_t const min_error_left_in_block = std::max(search.l[block_id] - errors_spent, 0); // NOTE: changed
 
@@ -414,11 +415,13 @@ inline bool search_ss(cursor_t cur, query_t & query,
         // Do not use insertion if there is a match.
         // Check if cursor did a step in the index.
         using size_type = typename cursor_t::size_type;
-        size_type const cp = (go_right) ? lb : rb;
-        bool const do_insertion = cur.query_length() > 0 ? cur.last_char() != query[cp] : true;
+        // Position of the next compared character in the query
+        size_type const cp = (go_right) ? rb - 1 : lb - 1;
+        bool did_step = (go_right) ? (ErrorCode::LAST_NOTHING != memory_right) : (ErrorCode::LAST_NOTHING != memory_left);
+        bool const do_insertion = did_step ? cur.last_char() != query[cp] : true;
+        ErrorCode const memory = (go_right) ? memory_right : memory_left;
 
         // Insertion
-        ErrorCode const memory = (go_right) ? memory_right : memory_left;
         if (do_insertion && (memory <= ErrorCode::LAST_NOTHING || error_left.substitution == 0)
             && error_left.insertion > 0)
         {
@@ -435,15 +438,14 @@ inline bool search_ss(cursor_t cur, query_t & query,
             ErrorCode memory_left2 = go_right ? memory_left : ErrorCode::LAST_INSERTION;
 
             // At the end of the current block
-            if (rb - lb == blocks_length[block_id] )
+            if (rb - lb == blocks_length[block_id])
             {
                 // Leave the possibility for one or multiple deletions at the end of a block.
                 // Thus do not change the direction (go_right) yet.
                 // TODO: benchmark the improvement on preventing insertions followed by a deletion and vice versa. Does
                 // it pay off the additional complexity and documentation for the user? (Note that the user might only
                 // allow for insertions and deletion and not for mismatches).
-                if (error_left2.substitution == 0)
-                {
+                if (error_left2.substitution == 0){
                     if (search_ss_deletion<abort_on_hit>(cur, query, lb2, rb2, errors_spent + 1, block_id, go_right, search,
                                                         blocks_length, error_left2, memory_right2, memory_left2, delegate) && abort_on_hit)
                     {
@@ -457,8 +459,8 @@ inline bool search_ss(cursor_t cur, query_t & query,
                         uint8_t const block_id2 = std::min<uint8_t>(block_id + 1, search.blocks() - 1);
                         bool const go_right2 = search.pi[block_id2] > search.pi[block_id2 - 1];
 
-                        if (search_ss<abort_on_hit>(cur, query, lb, rb, errors_spent, block_id2, go_right2, search, blocks_length,
-                                                    error_left, memory_right2, memory_left2, delegate) && abort_on_hit)
+                        if (search_ss<abort_on_hit>(cur, query, lb2, rb2, errors_spent + 1, block_id2, go_right2, search, blocks_length,
+                                                    error_left2, memory_right2, memory_left2, delegate) && abort_on_hit)
                         {
                             return true;
                         }
