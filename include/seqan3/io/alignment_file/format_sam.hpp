@@ -30,6 +30,7 @@
 #include <seqan3/io/alignment_file/sam_tag_dictionary.hpp>
 #include <seqan3/io/detail/ignore_output_iterator.hpp>
 #include <seqan3/io/detail/misc.hpp>
+#include <seqan3/io/stream/iterator.hpp>
 #include <seqan3/io/stream/parse_condition.hpp>
 #include <seqan3/range/decorator/gap_decorator_anchor_set.hpp>
 #include <seqan3/range/detail/misc.hpp>
@@ -460,17 +461,17 @@ public:
         // Type Requirements (as static asserts for user friendliness)
         // ---------------------------------------------------------------------
         static_assert((std::ranges::ForwardRange<seq_type>        &&
-                      Alphabet<value_type_t<remove_cvref_t<seq_type>>>),
+                      Alphabet<reference_t<seq_type>>),
                       "The seq object must be a std::ranges::ForwardRange over "
                       "letters that model seqan3::Alphabet.");
 
         static_assert((std::ranges::ForwardRange<id_type>         &&
-                      Alphabet<value_type_t<remove_cvref_t<id_type>>>),
+                      Alphabet<reference_t<id_type>>),
                       "The id object must be a std::ranges::ForwardRange over "
                       "letters that model seqan3::Alphabet.");
 
         static_assert((std::ranges::ForwardRange<ref_seq_type>    &&
-                      Alphabet<value_type_t<remove_cvref_t<ref_seq_type>>>),
+                      Alphabet<reference_t<ref_seq_type>>),
                       "The ref_seq object must be a std::ranges::ForwardRange "
                       "over letters that model seqan3::Alphabet.");
 
@@ -488,22 +489,22 @@ public:
                               "If you give indices as reference id information the header must also be present.");
         }
 
-        static_assert(tuple_like_concept<remove_cvref_t<align_type>>,
+        static_assert(TupleLike<remove_cvref_t<align_type>>,
                       "The align object must be a std::pair of two ranges whose "
                       "value_type is comparable to seqan3::gap");
 
         static_assert((std::tuple_size_v<remove_cvref_t<align_type>> == 2 &&
-                       std::EqualityComparableWith<gap, value_type_t<remove_cvref_t<decltype(std::get<0>(align))>>> &&
-                       std::EqualityComparableWith<gap, value_type_t<remove_cvref_t<decltype(std::get<1>(align))>>>),
+                       std::EqualityComparableWith<gap, reference_t<decltype(std::get<0>(align))>> &&
+                       std::EqualityComparableWith<gap, reference_t<decltype(std::get<1>(align))>>),
                       "The align object must be a std::pair of two ranges whose "
                       "value_type is comparable to seqan3::gap");
 
         static_assert((std::ranges::ForwardRange<qual_type>       &&
-                       Alphabet<value_type_t<remove_cvref_t<qual_type>>>),
+                       Alphabet<reference_t<qual_type>>),
                       "The qual object must be a std::ranges::ForwardRange "
                       "over letters that model seqan3::Alphabet.");
 
-        static_assert(tuple_like_concept<remove_cvref_t<mate_type>>,
+        static_assert(TupleLike<remove_cvref_t<mate_type>>,
                       "The mate object must be a std::tuple of size 3 with "
                       "1) a std::ranges::ForwardRange with a value_type modelling seqan3::Alphabet, "
                       "2) a std::Integral or std::optional<std::Integral>, and "
@@ -566,7 +567,7 @@ public:
         // ---------------------------------------------------------------------
         // Writing the Record
         // ---------------------------------------------------------------------
-        std::ranges::ostreambuf_iterator stream_it{stream};
+        seqan3::ostreambuf_iterator stream_it{stream};
         char const separator{'\t'};
 
         write_range(stream_it, std::forward<id_type>(id));
@@ -1284,7 +1285,7 @@ protected:
         // -----------------------------------------------------------------
         // Write Header
         // -----------------------------------------------------------------
-        std::ranges::ostreambuf_iterator stream_it{stream};
+        seqan3::ostreambuf_iterator stream_it{stream};
 
         // (@HD) Write header line [required].
         stream << "@HD\tVN:";

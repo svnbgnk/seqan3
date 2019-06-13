@@ -27,9 +27,11 @@ namespace seqan3
 /*!\brief The five letter RNA alphabet of A,C,G,U and the unknown character N.
  * \ingroup nucleotide
  * \implements seqan3::NucleotideAlphabet
- * \implements seqan3::detail::ConstexprAlphabet
+ * \implements seqan3::WritableAlphabet
+ * \if DEV \implements seqan3::detail::WritableConstexprAlphabet \endif
  * \implements seqan3::TriviallyCopyable
  * \implements seqan3::StandardLayout
+ * \implements std::Regular
  *
  * \details
  * This alphabet has the same internal representation as seqan3::dna5, the only difference is that it prints 'U' on
@@ -77,7 +79,7 @@ protected:
     //!\privatesection
 
     //!\copydoc seqan3::dna4::rank_to_char
-    static constexpr char_type rank_to_char[value_size]
+    static constexpr char_type rank_to_char[alphabet_size]
     {
         'A',
         'C',
@@ -90,7 +92,7 @@ protected:
     static constexpr std::array<rank_type, 256> char_to_rank = dna5::char_to_rank;
 
     //!\copydoc seqan3::dna4::complement_table
-    static const std::array<rna5, value_size> complement_table;
+    static const std::array<rna5, alphabet_size> complement_table;
 };
 
 // ------------------------------------------------------------------
@@ -143,7 +145,7 @@ inline rna5_vector operator""_rna5(char const * s, std::size_t n)
 // rna5 (deferred definition)
 // ------------------------------------------------------------------
 
-constexpr std::array<rna5, rna5::value_size> rna5::complement_table
+constexpr std::array<rna5, rna5::alphabet_size> rna5::complement_table
 {
     'U'_rna5,    // complement of 'A'_rna5
     'G'_rna5,    // complement of 'C'_rna5

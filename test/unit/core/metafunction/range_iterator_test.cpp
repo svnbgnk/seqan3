@@ -58,8 +58,8 @@ void expect_same_types()
     constexpr bool val = std::is_same_v<meta::at_c<list1, pos>, meta::at_c<list2, pos>>;
     if constexpr (!val)
     {
-        std::cerr << "\'" << detail::get_display_name_v<meta::at_c<list1, pos>> << "\' not equal to \'"
-                  << detail::get_display_name_v<meta::at_c<list2, pos>> << "\' \n";
+        std::cerr << "pos: " << pos << " \'" << detail::get_display_name_v<meta::at_c<list1, pos>>
+                  << "\' not equal to \'" << detail::get_display_name_v<meta::at_c<list2, pos>> << "\' \n";
     }
     EXPECT_TRUE(val);
 
@@ -208,17 +208,13 @@ TEST(range_and_iterator, size_type_)
                                  size_type_t<foreign_iterator>,                    // iterator2
                                  size_type_t<decltype(v)>>;                        // range, no member
 
-    // see above
-    using view_int_size_t = std::conditional_t<sizeof(std::size_t) == 8,
-                                               std::uint_fast64_t,
-                                               std::uint_fast32_t>;
     using comp_list = meta::list<size_t,
                                  size_t,
                                  size_t,
                                  size_t,
                                  size_t,
                                  size_t,
-                                 view_int_size_t>;
+                                 size_t>;
 
     expect_same_types<type_list, comp_list>();
 }
@@ -250,21 +246,21 @@ TEST(range_and_iterator, dimension)
 
 TEST(range_and_iterator, compatible)
 {
-    EXPECT_TRUE((compatible_concept<std::vector<int>,
+    EXPECT_TRUE((Compatible<std::vector<int>,
                                     std::list<int>>));
-    EXPECT_TRUE((compatible_concept<std::vector<int>,
+    EXPECT_TRUE((Compatible<std::vector<int>,
                                     std::ranges::iterator_t<std::vector<int>>>));
-    EXPECT_TRUE((compatible_concept<std::vector<int>,
+    EXPECT_TRUE((Compatible<std::vector<int>,
                                     std::ranges::iterator_t<std::vector<int> const>>));
-    EXPECT_TRUE((compatible_concept<std::list<std::vector<char>>,
+    EXPECT_TRUE((Compatible<std::list<std::vector<char>>,
                                     std::ranges::iterator_t<std::vector<std::string>>>));
 
-    EXPECT_FALSE((compatible_concept<std::list<std::vector<char>>,
+    EXPECT_FALSE((Compatible<std::list<std::vector<char>>,
                                      std::string>));
-    EXPECT_FALSE((compatible_concept<std::list<std::vector<char>>,
+    EXPECT_FALSE((Compatible<std::list<std::vector<char>>,
                                      std::ranges::iterator_t<std::string>>));
-    EXPECT_FALSE((compatible_concept<std::list<int>,
+    EXPECT_FALSE((Compatible<std::list<int>,
                                      int>));
-    EXPECT_FALSE((compatible_concept<std::vector<int>,
+    EXPECT_FALSE((Compatible<std::vector<int>,
                                      std::string>));
 }

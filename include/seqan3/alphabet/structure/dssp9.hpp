@@ -26,10 +26,12 @@ namespace seqan3
 {
 
 /*!\brief The protein structure alphabet of the characters "HGIEBTSCX".
- * \implements seqan3::Alphabet
- * \implements seqan3::detail::ConstexprAlphabet
+ * \implements seqan3::WritableAlphabet
+ * \implements seqan3::WritableAlphabet
+ * \if DEV \implements seqan3::detail::WritableConstexprAlphabet \endif
  * \implements seqan3::TriviallyCopyable
  * \implements seqan3::StandardLayout
+ * \implements std::Regular
  *
  * \ingroup structure
  *
@@ -80,7 +82,7 @@ protected:
     //!\privatesection
 
     //!\brief Value-to-char conversion table.
-    static constexpr char_type rank_to_char[value_size]
+    static constexpr char_type rank_to_char[alphabet_size]
     {
         'H', 'B', 'E', 'G', 'I', 'T', 'S', 'C', 'X'
     };
@@ -97,7 +99,7 @@ protected:
                 rnk = 8u;
 
             // reverse mapping for characters
-            for (rank_type rnk = 0u; rnk < value_size; ++rnk)
+            for (rank_type rnk = 0u; rnk < alphabet_size; ++rnk)
             {
                 ret[static_cast<rank_type>(rank_to_char[rnk])] = rnk;
             }

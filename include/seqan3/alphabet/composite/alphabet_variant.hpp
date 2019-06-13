@@ -122,11 +122,11 @@ inline bool constexpr one_alternative_is<alphabet_variant<alternatives...>,
                                          target_t> = false;
 
 // guard against pairs/tuples that *might* contain self to prevent recursive instantiation
-// (applying tuple_like_concept unfortunately does not work because it itself starts recursive instantiation)
+// (applying TupleLike unfortunately does not work because it itself starts recursive instantiation)
 template <typename ... alternatives,
           template <typename> typename fun_t,
           typename target_t>
-    requires tuple_size_concept<target_t> && !alphabet_tuple_base_concept<target_t>
+    requires TupleSize<target_t> && !alphabet_tuple_base_concept<target_t>
 inline bool constexpr one_alternative_is<alphabet_variant<alternatives...>,
                                          fun_t,
                                          target_t> = false;
@@ -140,16 +140,22 @@ namespace seqan3
 
 /*!\brief A combined alphabet that can hold values of either of its alternatives.
  * \ingroup composite
- * \tparam ...alternative_types Types of possible values (at least 2); all must model seqan3::Alphabet and be
- *                              unique.
- * \implements seqan3::Alphabet
- * \implements seqan3::detail::ConstexprAlphabet
+ * \if DEV
+ * \tparam ...alternative_types Types of possible values (at least 2); all must model
+ *                              seqan3::detail::WritableConstexprAlphabet, not be references and be unique.
+ * \implements seqan3::detail::WritableConstexprAlphabet
+ * \else
+ * \tparam ...alternative_types Types of possible values (at least 2); all must model seqan3::WritableAlphabet,
+ *                              must not be references and must be unique; all required functions for
+ *                              seqan3::WritableAlphabet need to be callable in a `constexpr`-context.
+ * \endif
+ * \implements seqan3::WritableAlphabet
  * \implements seqan3::TriviallyCopyable
  * \implements seqan3::StandardLayout
 
  * \details
  *
- * The alphabet_variant represents the variant of two or more alternative alphabets (e.g. the
+ * The alphabet_variant represents the union of two or more alternative alphabets (e.g. the
  * four letter DNA alternative + the gap alternative). It behaves similar to a
  * [variant](https://en.cppreference.com/w/cpp/language/variant) or std::variant, but it preserves the
  * seqan3::Alphabet.
@@ -166,22 +172,45 @@ namespace seqan3
  * ### Example
  *
  * \snippet test/snippet/alphabet/composite/alphabet_variant.cpp usage
+ *
+ * ### The `char` representation of an alphabet_variant
+ *
+ * Part of the seqan3::Alphabet concept requires that the alphabet_variant provides a char representation in addition
+ * to the rank representation. For an object of seqan3::alphabet_variant, the `to_char()` member function will always
+ * return the same character as if invoked on the respective alternative.
+ * In contrast, the `assign_char()` member function might be ambiguous between the alternative alphabets in a variant.
+ *
+ * For example, assigning a '!' to seqan3::dna15 resolves to an object of rank 8 with char representation 'N' while
+ * assigning '!' to seqan3::gap always resolves to rank 0, the gap symbol itself ('-'_gap).
+ * We tackle this ambiguousness by **defaulting unknown characters to the representation of the first alternative**
+ * (e.g. `alphabet_variant<dna15, gap>{}.assign_char('!')` resolves to rank 8, representing `N`_dna15).
+ *
+ * On the other hand, two alternative alphabets might have the same char representation (e.g if
+ * you combine dna4 with dna5, 'A', 'C', 'G' and 'T' are ambiguous).
+ * We tackle this ambiguousness by **always choosing the first valid char representation** (e.g.
+ * `alphabet_variant<dna4, dna5>{}.assign_char('A')` resolves to rank 0, representing an `A`_dna4).
+ *
+ * To explicitly assign via the character representation of a specific alphabet,
+ * assign to that type first and then assign to the variant, e.g.
+ *
+ * \snippet test/snippet/alphabet/composite/alphabet_variant.cpp char_representation
  */
 template <typename ...alternative_types>
 //!\cond
-    requires (detail::ConstexprAlphabet<alternative_types> && ...) &&
+    requires (detail::WritableConstexprAlphabet<alternative_types> && ...) &&
+             (!std::is_reference_v<alternative_types> && ...) &&
              (sizeof...(alternative_types) >= 2)
              //TODO same char_type
 //!\endcond
 class alphabet_variant : public alphabet_base<alphabet_variant<alternative_types...>,
-                                               (static_cast<size_t>(alphabet_size_v<alternative_types>) + ...),
+                                               (static_cast<size_t>(alphabet_size<alternative_types>) + ...),
                                                char> //TODO underlying char t
 
 {
 private:
     //!\brief The base type.
     using base_t = alphabet_base<alphabet_variant<alternative_types...>,
-                                                   (static_cast<size_t>(alphabet_size_v<alternative_types>) + ...),
+                                                   (static_cast<size_t>(alphabet_size<alternative_types>) + ...),
                                                    char>;
     //!\brief Befriend the base type.
     friend base_t;
@@ -193,7 +222,7 @@ private:
                   "All types in a alphabet_variant must be distinct.");
 
 public:
-    using base_t::value_size;
+    using base_t::alphabet_size;
     using base_t::to_char;
     using base_t::to_rank;
     using base_t::assign_rank;
@@ -309,7 +338,7 @@ public:
     template <size_t index>
     constexpr bool is_alternative() const noexcept
     {
-        static_assert(index < value_size, "The alphabet_variant contains less alternatives than you are checking.");
+        static_assert(index < alphabet_size, "The alphabet_variant contains less alternatives than you are checking.");
         return (to_rank() >= partial_sum_sizes[index]) && (to_rank() < partial_sum_sizes[index + 1]);
     }
 
@@ -378,14 +407,14 @@ public:
      * \{
      */
     template <typename alternative_t>
-    constexpr bool operator==(alternative_t const & rhs) const noexcept
+    constexpr bool operator==(alternative_t const rhs) const noexcept
         requires holds_alternative<alternative_t>()
     {
         return is_alternative<alternative_t>() && (convert_unsafely_to<alternative_t>() == rhs);
     }
 
     template <typename alternative_t>
-    constexpr bool operator!=(alternative_t const & rhs) const noexcept
+    constexpr bool operator!=(alternative_t const rhs) const noexcept
         requires holds_alternative<alternative_t>()
     {
         return !operator==(rhs);
@@ -400,7 +429,7 @@ public:
      * \{
      */
     template <typename indirect_alternative_type>
-    constexpr bool operator==(indirect_alternative_type const & rhs) const noexcept
+    constexpr bool operator==(indirect_alternative_type const rhs) const noexcept
     //!\cond
         requires detail::one_alternative_is<alphabet_variant,
                                             detail::weakly_equality_comparable_with,
@@ -414,7 +443,7 @@ public:
     }
 
     template <typename indirect_alternative_type>
-    constexpr bool operator!=(indirect_alternative_type const & rhs) const noexcept
+    constexpr bool operator!=(indirect_alternative_type const rhs) const noexcept
     //!\cond
         requires detail::one_alternative_is<alphabet_variant,
                                             detail::weakly_equality_comparable_with,
@@ -435,7 +464,7 @@ protected:
     template <size_t index, bool throws>
     constexpr auto convert_impl() const noexcept(!throws) -> meta::at_c<alternatives, index>
     {
-        static_assert(index < value_size, "The alphabet_variant contains less alternatives than you are checking.");
+        static_assert(index < alphabet_size, "The alphabet_variant contains less alternatives than you are checking.");
         using alternative_t = meta::at_c<alternatives, index>;
 
         if constexpr (throws)
@@ -454,14 +483,14 @@ protected:
      * sum up to the position of each alternative.
      *
      * An array which contains the prefix sum over all
-     * alternative_types::value_size's.
+     * alternative_types::alphabet_size's.
      *
      */
     static constexpr std::array partial_sum_sizes = []() constexpr
     {
         constexpr size_t N = sizeof...(alternative_types) + 1;
 
-        std::array<rank_type, N> partial_sum{0, alphabet_size_v<alternative_types>...};
+        std::array<rank_type, N> partial_sum{0, seqan3::alphabet_size<alternative_types>...};
         for (size_t i = 1u; i < N; ++i)
             partial_sum[i] += partial_sum[i-1];
 
@@ -475,7 +504,7 @@ protected:
      * and alternative.
      *
      */
-    static constexpr std::array<char_type, value_size> rank_to_char = []() constexpr
+    static constexpr std::array<char_type, alphabet_size> rank_to_char = []() constexpr
     {
         // Explicitly writing assign_rank_to_char within assign_rank_to_char
         // causes this bug (g++-7 and g++-8):
@@ -488,12 +517,12 @@ protected:
         auto assign_value_to_char = [assign_rank_to_char] (auto alternative, auto & value_to_char, auto & value) constexpr
         {
             using alternative_t = std::decay_t<decltype(alternative)>;
-            for (size_t i = 0u; i < alphabet_size_v<alternative_t>; ++i, ++value)
+            for (size_t i = 0u; i < seqan3::alphabet_size<alternative_t>; ++i, ++value)
                 value_to_char[value] = assign_rank_to_char(alternative, i);
         };
 
         unsigned value = 0u;
-        std::array<char_type, value_size> value_to_char{};
+        std::array<char_type, alphabet_size> value_to_char{};
 
         // initializer lists guarantee sequencing;
         // the following expression behaves as:
@@ -502,29 +531,6 @@ protected:
         ((assign_value_to_char(alternative_types{}, value_to_char, value)),...);
 
         return value_to_char;
-    }();
-
-    /*!\brief Compile-time generated lookup table which maps the char to rank.
-     *
-     * An map generated at compile time where the key is the char of one of the
-     * alternatives and the value is the corresponding rank over all alternatives (by
-     * conflict will default to the first).
-     *
-     */
-    static constexpr std::array char_to_rank = []() constexpr
-    {
-        constexpr size_t table_size = 1 << (sizeof(char_type) * 8);
-
-        std::array<rank_type, table_size> char_to_rank{};
-        for (size_t i = 0u; i < rank_to_char.size(); ++i)
-        {
-            using index_t = std::make_unsigned_t<char_type>;
-            rank_type & old_entry = char_to_rank[static_cast<index_t>(rank_to_char[i])];
-            bool is_new_entry = rank_to_char[0] != rank_to_char[i] && old_entry == 0;
-            if (is_new_entry)
-                old_entry = static_cast<rank_type>(i);
-        }
-        return char_to_rank;
     }();
 
     //!\brief Converts an object of one of the given alternatives into the internal representation.
@@ -553,6 +559,42 @@ protected:
         constexpr size_t index = meta::find_index<alternatives, alternative_t>::value;
         return rank_by_index_<index>(alternative);
     }
+
+    /*!\brief Compile-time generated lookup table which maps the char to rank.
+     *
+     * An map generated at compile time where the key is the char of one of the
+     * alternatives and the value is the corresponding rank over all alternatives (by
+     * conflict will default to the first).
+     *
+     */
+    static constexpr std::array char_to_rank = []() constexpr
+    {
+        constexpr size_t table_size = 1 << (sizeof(char_type) * 8);
+
+        std::array<rank_type, table_size> char_to_rank{};
+
+        for (size_t i = 0u; i < table_size; ++i)
+        {
+            char_type chr = static_cast<char_type>(i);
+            bool there_was_no_valid_representation{true};
+
+            meta::for_each(alternatives{}, [&] (auto && alt)
+            {
+                using alt_type = remove_cvref_t<decltype(alt)>;
+
+                if (there_was_no_valid_representation && char_is_valid_for<alt_type>(chr))
+                {
+                    there_was_no_valid_representation = false;
+                    char_to_rank[i] = rank_by_type_(assign_char_to(chr, alt_type{}));
+                }
+            });
+
+            if (there_was_no_valid_representation)
+                char_to_rank[i] = rank_by_type_(assign_char_to(chr, meta::front<alternatives>{}));
+        }
+
+        return char_to_rank;
+    }();
 };
 
 /*!\name Comparison operators
@@ -561,7 +603,7 @@ protected:
  *\{
  */
 template <typename lhs_t, typename ...alternative_types>
-constexpr bool operator==(lhs_t const & lhs, alphabet_variant<alternative_types...> const & rhs) noexcept
+constexpr bool operator==(lhs_t const lhs, alphabet_variant<alternative_types...> const rhs) noexcept
 //!\cond
     requires detail::WeaklyEqualityComparableByMembersWith<alphabet_variant<alternative_types...>, lhs_t> &&
              !detail::WeaklyEqualityComparableByMembersWith<lhs_t, alphabet_variant<alternative_types...>>
@@ -571,7 +613,7 @@ constexpr bool operator==(lhs_t const & lhs, alphabet_variant<alternative_types.
 }
 
 template <typename lhs_t, typename ...alternative_types>
-constexpr bool operator!=(lhs_t const & lhs, alphabet_variant<alternative_types...> const & rhs) noexcept
+constexpr bool operator!=(lhs_t const lhs, alphabet_variant<alternative_types...> const rhs) noexcept
 //!\cond
     requires detail::WeaklyEqualityComparableByMembersWith<alphabet_variant<alternative_types...>, lhs_t> &&
              !detail::WeaklyEqualityComparableByMembersWith<lhs_t, alphabet_variant<alternative_types...>>

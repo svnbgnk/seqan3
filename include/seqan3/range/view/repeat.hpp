@@ -267,6 +267,7 @@ public:
         return *single_value.begin();
     }
 
+    //!\copydoc operator[]()
     constexpr reference operator[](difference_type const SEQAN3_DOXYGEN_ONLY(n)) noexcept
     {
         return *single_value.begin();
@@ -312,6 +313,11 @@ namespace seqan3::view
  * \ingroup view
  *
  * \details
+ *
+ * **Header**
+ * ```cpp
+ *      #include <seqan3/range/view/repeat.hpp>
+ * ```
  *
  * ### View properties
  *

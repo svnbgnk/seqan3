@@ -43,7 +43,7 @@ struct kmer_hash_fn
      */
     template <std::ranges::ViewableRange urng_t>
     //!\cond
-        requires Semialphabet<delete_const_t<reference_t<urng_t>>>
+        requires Semialphabet<reference_t<urng_t>>
     //!\endcond
     constexpr auto operator()(urng_t && urange, size_t const k) const noexcept
     {
@@ -72,6 +72,11 @@ namespace seqan3::view
      * \returns             A range of unsigned integral values where each value is the hash of the resp. k-mer.
      *                      See below for the properties of the returned range.
      * \ingroup view
+     *
+     * **Header**
+     * ```cpp
+     *      #include <seqan3/range/view/kmer_hash.hpp>
+     * ```
      *
      * ### View properties
      *

@@ -34,7 +34,7 @@ struct pod_tuple
 
 /*!\brief Behaves like std::tuple but is an aggregate [PODType](http://en.cppreference.com/w/cpp/concept/PODType).
  * \ingroup core
- * \implements seqan3::tuple_like_concept
+ * \implements seqan3::TupleLike
  * \tparam type0    The first type (the first type).
  * \tparam ...types 0-n types (the remaining types of the values to be stored).
  *
@@ -63,34 +63,41 @@ struct pod_tuple<type0, types...>
     pod_tuple<types...> _tail;
     //!\endcond
 
-    //!\name Comparison operators
-    //!\{
-    //!\brief Lexicographically compares the values in the tuple.
+    /*!\name Comparison operators
+     * \{
+     */
+
+    //!\brief Checks whether `*this` is equal to `rhs`.
     constexpr bool operator==(pod_tuple const & rhs) const noexcept
     {
         return std::tie(_head, _tail) == std::tie(rhs._head, rhs._tail);
     }
 
+    //!\brief Checks whether `*this` is not equal to `rhs`.
     constexpr bool operator!=(pod_tuple const & rhs) const noexcept
     {
         return std::tie(_head, _tail) != std::tie(rhs._head, rhs._tail);
     }
 
+    //!\brief Checks whether `*this` is less than `rhs`.
     constexpr bool operator<(pod_tuple const & rhs) const noexcept
     {
         return std::tie(_head, _tail) < std::tie(rhs._head, rhs._tail);
     }
 
+    //!\brief Checks whether `*this` is greater than `rhs`.
     constexpr bool operator>(pod_tuple const & rhs) const noexcept
     {
         return std::tie(_head, _tail) > std::tie(rhs._head, rhs._tail);
     }
 
+    //!\brief Checks whether `*this` is less than or equal to `rhs`.
     constexpr bool operator<=(pod_tuple const & rhs) const noexcept
     {
         return std::tie(_head, _tail) <= std::tie(rhs._head, rhs._tail);
     }
 
+    //!\brief Checks whether `*this` is greater than or equal to `rhs`.
     constexpr bool operator>=(pod_tuple const & rhs) const noexcept
     {
         return std::tie(_head, _tail) >= std::tie(rhs._head, rhs._tail);
@@ -111,34 +118,42 @@ struct pod_tuple<type0>
     type0 _head;
     //!\endcond
 
-    //!\name Comparison operators
-    //!\{
-    //!\brief Lexicographically compares the values in the tuple.
+    /*!\name Comparison operators
+     * \brief Lexicographically compares the values in the tuple.
+     * \{
+     */
+
+    //!\brief Checks whether `*this` is equal to `rhs`.
     constexpr bool operator==(pod_tuple const & rhs) const noexcept
     {
         return _head == rhs._head;
     }
 
+    //!\brief Checks whether `*this` is not equal to `rhs`.
     constexpr bool operator!=(pod_tuple const & rhs) const noexcept
     {
         return _head != rhs._head;
     }
 
+    //!\brief Checks whether `*this` is less than `rhs`.
     constexpr bool operator<(pod_tuple const & rhs) const noexcept
     {
         return _head < rhs._head;
     }
 
+    //!\brief Checks whether `*this` is greater than `rhs`.
     constexpr bool operator>(pod_tuple const & rhs) const noexcept
     {
         return _head > rhs._head;
     }
 
+    //!\brief Checks whether `*this` is less than or equal to `rhs`.
     constexpr bool operator<=(pod_tuple const & rhs) const noexcept
     {
         return _head <= rhs._head;
     }
 
+    //!\brief Checks whether `*this` is greater than or equal to `rhs`.
     constexpr bool operator>=(pod_tuple const & rhs) const noexcept
     {
         return _head >= rhs._head;

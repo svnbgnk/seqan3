@@ -65,11 +65,11 @@ constexpr bool add_enum_bitwise_operators<fmtflags2> = true;
  *
  *  Simple usage:
  *
- * \snippet test/snippet/io/stream/debug_stream.cpp usage
+ * \snippet test/snippet/core/debug_stream.cpp usage
  *
  * Changing flags:
  *
- * \snippet test/snippet/io/stream/debug_stream.cpp flags
+ * \snippet test/snippet/core/debug_stream.cpp flags
  *
  * See seqan3::fmtflags2 for more details.
  *
@@ -108,11 +108,11 @@ public:
      * the underlying stream so you need to take special care that its object lifetime does not end before the
      * debug_stream's.
      *
-     * \snippet test/snippet/io/stream/debug_stream.cpp set_underlying_stream
+     * \snippet test/snippet/core/debug_stream.cpp set_underlying_stream
      *
      * In the case where you wish to print to some stream object locally, instead create you own debug stream:
      *
-     * \snippet test/snippet/io/stream/debug_stream.cpp set_underlying_stream2
+     * \snippet test/snippet/core/debug_stream.cpp set_underlying_stream2
      */
     void set_underlying_stream(std::ostream & out)
     {
@@ -290,7 +290,7 @@ namespace seqan3
 {
 
 /*!\brief All tuples can be printed by printing their elements separately.
- * \tparam tuple_t Type of the tuple to be printed; must model seqan3::tuple_like_concept.
+ * \tparam tuple_t Type of the tuple to be printed; must model seqan3::TupleLike.
  * \param s The seqan3::debug_stream.
  * \param t The tuple.
  * \relates seqan3::debug_stream_type
@@ -298,8 +298,8 @@ namespace seqan3
 template <typename tuple_t>
 //!\cond
     requires !std::ranges::InputRange<tuple_t> &&
-             !Alphabet<remove_cvref_t<tuple_t>> && // exclude alphabet_tuple_base
-             tuple_like_concept<remove_cvref_t<tuple_t>>
+             !Alphabet<tuple_t> && // exclude alphabet_tuple_base
+             TupleLike<remove_cvref_t<tuple_t>>
 //!\endcond
 inline debug_stream_type & operator<<(debug_stream_type & s, tuple_t && t)
 {
@@ -374,7 +374,7 @@ inline debug_stream_type & operator<<(debug_stream_type & s, rng_t && r)
                std::Same<remove_cvref_t<reference_t<rng_t>>, char>)
 //!\endcond
 {
-    if constexpr (Alphabet<remove_cvref_t<reference_t<rng_t>>> &&
+    if constexpr (Alphabet<reference_t<rng_t>> &&
                   !detail::is_uint_adaptation_v<remove_cvref_t<reference_t<rng_t>>>)
     {
         for (auto && l : r)

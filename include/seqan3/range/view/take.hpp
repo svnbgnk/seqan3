@@ -81,6 +81,9 @@ private:
         //!\brief The size parameter to the view.
         size_t max_pos{};
 
+        //!\brief A pointer to host, s.t. the size of the view can shrink on pure input ranges.
+        std::conditional_t<exactly && !std::ForwardIterator<base_base_t>, view_take *, detail::ignore_t> host_ptr;
+
     public:
         /*!\name Constructors, destructor and assignment
          * \brief Exceptions specification is implicitly inherited.
@@ -99,19 +102,27 @@ private:
         {}
 
         //!\brief Constructor that delegates to the CRTP layer and initialises the members.
-        constexpr iterator_type(base_base_t it, size_t const _pos, size_t const _max_pos) noexcept(noexcept(base_t{it})) :
+        constexpr iterator_type(base_base_t it, size_t const _pos, size_t const _max_pos, view_take * host = nullptr) noexcept(noexcept(base_t{it})) :
             base_t{std::move(it)}, pos{_pos}, max_pos(_max_pos)
-        {}
+        {
+            host_ptr = host;
+        }
         //!\}
 
         /*!\name Associated types
          * \brief All are derived from the base_base_t.
          * \{
          */
+
+        //!\brief The difference type.
         using difference_type       = typename std::iterator_traits<base_base_t>::difference_type;
+        //!\brief The value type.
         using value_type            = typename std::iterator_traits<base_base_t>::value_type;
+        //!\brief The reference type.
         using reference             = typename std::iterator_traits<base_base_t>::reference;
+        //!\brief The pointer type.
         using pointer               = typename std::iterator_traits<base_base_t>::pointer;
+        //!\brief The iterator category tag.
         using iterator_category     = iterator_tag_t<base_base_t>;
         //!\}
 
@@ -119,13 +130,18 @@ private:
          * \brief seqan3::detail::inherited_iterator_base operators are used unless specialised here.
          * \{
          */
+
+        //!\brief Increments the iterator by one.
         constexpr iterator_type & operator++() noexcept(noexcept(++std::declval<base_t &>()))
         {
             base_t::operator++();
             ++pos;
+            if constexpr (exactly && !std::ForwardIterator<base_base_t>)
+                --host_ptr->target_size;
             return *this;
         }
 
+        //!\brief Returns an iterator incremented by one.
         constexpr iterator_type operator++(int) noexcept(noexcept(++std::declval<iterator_type &>()) &&
                                                std::is_nothrow_copy_constructible_v<iterator_type>)
         {
@@ -134,6 +150,7 @@ private:
             return cpy;
         }
 
+        //!\brief Decrements the iterator by one.
         constexpr iterator_type & operator--() noexcept(noexcept(--std::declval<base_base_t &>()))
         //!\cond
             requires std::BidirectionalIterator<base_base_t>
@@ -144,6 +161,7 @@ private:
             return *this;
         }
 
+        //!\brief Returns an iterator decremented by one.
         constexpr iterator_type operator--(int) noexcept(noexcept(--std::declval<iterator_type &>()) &&
                                                std::is_nothrow_copy_constructible_v<iterator_type>)
         //!\cond
@@ -155,6 +173,7 @@ private:
             return cpy;
         }
 
+        //!\brief Advances the iterator by skip positions.
         constexpr iterator_type & operator+=(difference_type const skip) noexcept(noexcept(std::declval<base_t &>() += skip))
         //!\cond
             requires std::RandomAccessIterator<base_base_t>
@@ -165,6 +184,7 @@ private:
             return *this;
         }
 
+        //!\brief Advances the iterator by -skip positions.
         constexpr iterator_type & operator-=(difference_type const skip) noexcept(noexcept(std::declval<base_t &>() -= skip))
         //!\cond
             requires std::RandomAccessIterator<base_base_t>
@@ -180,6 +200,8 @@ private:
          * \brief We define comparison against self and against the sentinel.
          * \{
          */
+
+        //!\brief Checks whether `*this` is equal to `rhs`.
         constexpr bool operator==(iterator_type const & rhs) const
             noexcept(!or_throw && noexcept(std::declval<base_base_t &>() == std::declval<base_base_t &>()))
         //!\cond
@@ -189,6 +211,7 @@ private:
             return *base_t::this_to_base() == *rhs.this_to_base();
         }
 
+        //!\copydoc operator==()
         constexpr bool operator==(sentinel_type const & rhs) const
             noexcept(!or_throw && noexcept(std::declval<base_base_t &>() == std::declval<sentinel_type &>()))
         {
@@ -208,17 +231,20 @@ private:
             }
         }
 
+        //!\brief Checks whether `lhs` is equal to `rhs`.
         constexpr friend bool operator==(sentinel_type const & lhs, iterator_type const & rhs) noexcept(noexcept(rhs == lhs))
         {
             return rhs == lhs;
         }
 
+        //!\brief Checks whether `*this` is not equal to `rhs`.
         constexpr bool operator!=(sentinel_type const & rhs) const
             noexcept(noexcept(std::declval<iterator_type &>() == rhs))
         {
             return !(*this == rhs);
         }
 
+        //!\copydoc operator!=()
         constexpr bool operator!=(iterator_type const & rhs) const
             noexcept(noexcept(std::declval<iterator_type &>() == rhs))
         //!\cond
@@ -228,6 +254,7 @@ private:
             return !(*this == rhs);
         }
 
+        //!\brief Checks whether `lhs` is not equal to `rhs`.
         constexpr friend bool operator!=(sentinel_type const & lhs, iterator_type const & rhs) noexcept(noexcept(rhs != lhs))
         {
             return rhs != lhs;
@@ -237,6 +264,11 @@ private:
         /*!\name Reference/Dereference operators
          * \brief seqan3::detail::inherited_iterator_base operators are used unless specialised here.
          * \{
+         */
+
+        /*!\brief Accesses an element by index.
+         * \param n Position relative to current location.
+         * \return A reference to the element at relative location.
          */
         constexpr reference operator[](std::make_unsigned_t<difference_type> const n) const
             noexcept(noexcept(std::declval<base_base_t &>()[0]))
@@ -260,7 +292,9 @@ public:
     //!\brief The value_type (which equals the reference_type with any references removed).
     using value_type        = value_type_t<urng_t>;
     //!\brief The size_type is `size_t` if the view is exact, otherwise `void`.
-    using size_type         = std::conditional_t<exactly, size_t, void>;
+    using size_type         = std::conditional_t<exactly,
+                                                 transformation_trait_or_t<seqan3::size_type<urng_t>, size_t>,
+                                                 void>;
     //!\brief A signed integer type, usually std::ptrdiff_t.
     using difference_type   = difference_type_t<urng_t>;
     //!\brief The iterator type of this view (a random access iterator).
@@ -330,7 +364,7 @@ public:
      */
     constexpr iterator begin() noexcept
     {
-        return {seqan3::begin(urange), 0, target_size};
+        return {seqan3::begin(urange), 0, target_size, &(*this)};
     }
 
     //!\copydoc begin()
@@ -540,6 +574,11 @@ namespace seqan3::view
  * \ingroup view
  *
  * \details
+ *
+ * **Header**
+ * ```cpp
+ *      #include <seqan3/range/view/take.hpp>
+ * ```
  *
  * ### View properties
  *

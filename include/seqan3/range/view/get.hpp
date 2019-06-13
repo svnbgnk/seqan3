@@ -31,6 +31,11 @@ namespace seqan3::view
                         See below for the properties of the returned range.
  * \ingroup view
  *
+ * **Header**
+ * ```cpp
+ *      #include <seqan3/range/view/get.hpp>
+ * ```
+ *
  * ### View properties
  *
  * | range concepts and reference_t  | `urng_t` (underlying range type)      | `rrng_t` (returned range type)                          |
@@ -48,7 +53,7 @@ namespace seqan3::view
  * | std::ranges::OutputRange        |                                       | *preserved*                                             |
  * | seqan3::ConstIterableRange      |                                       | *preserved*                                             |
  * |                                 |                                       |                                                         |
- * | seqan3::reference_t             | seqan3::tuple_like_concept            | std::tuple_element_t<index, seqan3::reference_t<urng_t>>|
+ * | seqan3::reference_t             | seqan3::TupleLike                     | std::tuple_element_t<index, seqan3::reference_t<urng_t>>|
  *
  * See the \link view view submodule documentation \endlink for detailed descriptions of the view properties.
  *
@@ -62,8 +67,8 @@ inline auto const get = std::view::transform([] (auto && in) -> decltype(auto)
 {
     using std::get;
     using seqan3::get;
-    static_assert(tuple_like_concept<decltype(in)>,
-                  "You may only pass ranges to view::get whose reference_t models the tuple_like_concept.");
+    static_assert(TupleLike<decltype(in)>,
+                  "You may only pass ranges to view::get whose reference_t models the TupleLike.");
 
     // we need to explicitly remove && around temporaries to return values as values (and not as rvalue references)
     // we cannot simply cast to std::tuple_element_t (or set that as return value), because some tuples, like

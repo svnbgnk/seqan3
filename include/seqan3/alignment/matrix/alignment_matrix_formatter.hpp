@@ -19,7 +19,7 @@
 
 #include <seqan3/alignment/matrix/matrix_concept.hpp>
 #include <seqan3/alignment/matrix/alignment_trace_matrix.hpp>
-#include <seqan3/io/stream/debug_stream.hpp>
+#include <seqan3/core/debug_stream.hpp>
 
 namespace seqan3::detail
 {
@@ -376,10 +376,14 @@ private:
  * \relates seqan3::detail::alignment_matrix_formatter
  * \{
  */
+
+//!\brief Deduce the matrix type from the provided argument.
 template<typename alignment_matrix_t>
 alignment_matrix_formatter(alignment_matrix_t const &) -> alignment_matrix_formatter<alignment_matrix_t>;
 
+//!\brief Deduce the matrix type from the provided arguments.
 template<typename alignment_matrix_t>
 alignment_matrix_formatter(alignment_matrix_t const &, alignment_matrix_format) -> alignment_matrix_formatter<alignment_matrix_t>;
 //!\}
+
 } // namespace seqan3::detail

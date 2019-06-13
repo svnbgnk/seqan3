@@ -29,9 +29,11 @@ class rna4;
 /*!\brief The four letter DNA alphabet of A,C,G,T.
  * \ingroup nucleotide
  * \implements seqan3::NucleotideAlphabet
- * \implements seqan3::detail::ConstexprAlphabet
+ * \implements seqan3::WritableAlphabet
+ * \if DEV \implements seqan3::detail::WritableConstexprAlphabet \endif
  * \implements seqan3::TriviallyCopyable
  * \implements seqan3::StandardLayout
+ * \implements std::Regular
  *
  * \details
  * Note that you can assign 'U' as a character to dna4 and it will silently
@@ -82,7 +84,7 @@ protected:
     //!\privatesection
 
     //!\brief Value to char conversion table.
-    static constexpr char_type rank_to_char[value_size]
+    static constexpr char_type rank_to_char[alphabet_size]
     {
         'A',
         'C',
@@ -98,7 +100,7 @@ protected:
             std::array<rank_type, 256> ret{};
 
             // reverse mapping for characters and their lowercase
-            for (size_t rnk = 0u; rnk < value_size; ++rnk)
+            for (size_t rnk = 0u; rnk < alphabet_size; ++rnk)
             {
                 ret[         rank_to_char[rnk] ] = rnk;
                 ret[to_lower(rank_to_char[rnk])] = rnk;
@@ -124,7 +126,7 @@ protected:
     };
 
     //!\brief The complement table.
-    static const std::array<dna4, value_size> complement_table;
+    static const std::array<dna4, alphabet_size> complement_table;
 };
 
 // ------------------------------------------------------------------
@@ -177,7 +179,7 @@ inline dna4_vector operator""_dna4(char const * s, std::size_t n)
 // dna4 (deferred definition)
 // ------------------------------------------------------------------
 
-constexpr std::array<dna4, dna4::value_size> dna4::complement_table
+constexpr std::array<dna4, dna4::alphabet_size> dna4::complement_table
 {
     'T'_dna4,    // complement of 'A'_dna4
     'G'_dna4,    // complement of 'C'_dna4

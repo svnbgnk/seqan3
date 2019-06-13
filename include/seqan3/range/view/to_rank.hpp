@@ -30,6 +30,11 @@ namespace seqan3::view
  * \returns             A range of converted elements. See below for the properties of the returned range.
  * \ingroup view
  *
+ * **Header**
+ * ```cpp
+ *      #include <seqan3/range/view/to_rank.hpp>
+ * ```
+ *
  * ### View properties
  *
  * This view is a **deep view:** Given a range-of-range as input (as opposed to just a range), it will apply
@@ -62,7 +67,8 @@ namespace seqan3::view
  */
 inline auto const to_rank = deep{std::view::transform([] (auto const in) noexcept
 {
-    static_assert(Alphabet<remove_cvref_t<decltype(in)>>, "The value type of seqan3::view::to_rank must model the seqan3::Alphabet.");
+    static_assert(Semialphabet<decltype(in)>,
+                  "The value type of seqan3::view::to_rank must model the seqan3::Alphabet.");
     return seqan3::to_rank(in);
 })};
 

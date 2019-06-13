@@ -27,9 +27,11 @@ namespace seqan3
 /*!\brief The four letter RNA alphabet of A,C,G,U.
  * \ingroup nucleotide
  * \implements seqan3::NucleotideAlphabet
- * \implements seqan3::detail::ConstexprAlphabet
+ * \implements seqan3::WritableAlphabet
+ * \if DEV \implements seqan3::detail::WritableConstexprAlphabet \endif
  * \implements seqan3::TriviallyCopyable
  * \implements seqan3::StandardLayout
+ * \implements std::Regular
  *
  * \details
  * This alphabet has the same internal representation as seqan3::dna4, the only difference is that it prints 'U' on
@@ -77,7 +79,7 @@ protected:
     //!\privatesection
 
     //!\copydoc seqan3::dna4::rank_to_char
-    static constexpr char_type rank_to_char[value_size]
+    static constexpr char_type rank_to_char[alphabet_size]
     {
         'A',
         'C',
@@ -89,7 +91,7 @@ protected:
     static constexpr std::array<rank_type, 256> char_to_rank = dna4::char_to_rank;
 
     //!\copydoc seqan3::dna4::complement_table
-    static const std::array<rna4, value_size> complement_table;
+    static const std::array<rna4, alphabet_size> complement_table;
 };
 
 // ------------------------------------------------------------------
@@ -142,7 +144,7 @@ inline rna4_vector operator""_rna4(char const * s, std::size_t n)
 // rna4 (deferred definition)
 // ------------------------------------------------------------------
 
-constexpr std::array<rna4, rna4::value_size> rna4::complement_table
+constexpr std::array<rna4, rna4::alphabet_size> rna4::complement_table
 {
     'U'_rna4,    // complement of 'A'_rna4
     'G'_rna4,    // complement of 'C'_rna4

@@ -138,7 +138,7 @@ struct fields
 
 /*!\brief The class template that file records are based on; behaves like an std::tuple.
  * \ingroup io
- * \implements seqan3::tuple_like_concept
+ * \implements seqan3::TupleLike
  * \tparam field_types The types of the fields in this record as a seqan3::type_list.
  * \tparam field_ids   A seqan3::fields type with seqan3::field IDs corresponding to field_types.
  *
@@ -229,6 +229,8 @@ namespace seqan3
  * \relates seqan3::record
  * \{
  */
+
+//!\brief Free function get() for seqan3::record based on seqan3::field.
 template <field f, typename field_types, typename field_ids>
 auto & get(record<field_types, field_ids> & r)
 {
@@ -236,6 +238,7 @@ auto & get(record<field_types, field_ids> & r)
     return std::get<field_ids::index_of(f)>(r);
 }
 
+//!\overload
 template <field f, typename field_types, typename field_ids>
 auto const & get(record<field_types, field_ids> const & r)
 {
@@ -243,6 +246,7 @@ auto const & get(record<field_types, field_ids> const & r)
     return std::get<field_ids::index_of(f)>(r);
 }
 
+//!\overload
 template <field f, typename field_types, typename field_ids>
 auto && get(record<field_types, field_ids> && r)
 {
@@ -250,6 +254,7 @@ auto && get(record<field_types, field_ids> && r)
     return std::get<field_ids::index_of(f)>(std::move(r));
 }
 
+//!\overload
 template <field f, typename field_types, typename field_ids>
 auto const && get(record<field_types, field_ids> const && r)
 {

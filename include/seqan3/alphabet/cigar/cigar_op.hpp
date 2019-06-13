@@ -23,6 +23,11 @@ namespace seqan3
 
 /*!\brief The (extended) cigar operation alphabet of M,D,I,H,N,P,S,X,=.
  * \ingroup cigar
+ * \implements seqan3::WritableAlphabet
+ * \if DEV \implements seqan3::detail::WritableConstexprAlphabet \endif
+ * \implements seqan3::TriviallyCopyable
+ * \implements seqan3::StandardLayout
+ * \implements std::Regular
  *
  * \details
  *
@@ -70,7 +75,7 @@ protected:
     //!\privatesection
 
     //!\brief Value to char conversion table.
-    static constexpr char_type rank_to_char[value_size]
+    static constexpr char_type rank_to_char[alphabet_size]
     {
         'M',
         'D',
@@ -91,7 +96,7 @@ protected:
             std::array<rank_type, 256> ret{};
 
             // reverse mapping for characters
-            for (size_t rnk = 0u; rnk < value_size; ++rnk)
+            for (size_t rnk = 0u; rnk < alphabet_size; ++rnk)
             {
                 ret[rank_to_char[rnk] ] = rnk;
             }

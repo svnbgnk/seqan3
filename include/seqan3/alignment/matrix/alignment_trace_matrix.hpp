@@ -147,10 +147,10 @@ private:
     bool is_trace_up(size_t const row, size_t const col) const noexcept
     {
         // TODO: use the alignment_config to calculate the score
-        score_type gap = 1;
+        score_type gap = -1;
 
         score_type curr = score_matrix().at(row, col);
-        score_type up = row == 0 ? col : score_matrix().at(row - 1, col);
+        score_type up = row == 0 ? -col : score_matrix().at(row - 1, col);
         return curr == up + gap;
     }
 
@@ -158,10 +158,10 @@ private:
     bool is_trace_left(size_t const row, size_t const col) const noexcept
     {
         // TODO: use the alignment_config to calculate the score
-        score_type gap = 1;
+        score_type gap = -1;
 
         score_type curr = score_matrix().at(row, col);
-        score_type left = col == 0 ? row : score_matrix().at(row, col - 1);
+        score_type left = col == 0 ? -row : score_matrix().at(row, col - 1);
         return curr == left + gap;
     }
 
@@ -170,7 +170,7 @@ private:
     {
         // TODO: use the alignment_config to calculate the score
         score_type match = 0;
-        score_type mismatch = 1;
+        score_type mismatch = -1;
 
         score_type curr = score_matrix().at(row, col);
         if (col == 0 || row == 0)
@@ -195,9 +195,12 @@ private:
  * \relates seqan3::detail::alignment_trace_matrix
  * \{
  */
+
+//!\brief Deduce the trace matrix type from the provided arguments.
 alignment_trace_matrix(std::vector<trace_directions>, size_t rows, size_t cols)
     -> alignment_trace_matrix<std::vector<trace_directions>>;
 
+//!\brief Deduce the trace matrix type from the provided arguments.
 template <typename database_t, typename query_t, typename align_config_t, typename alignment_t, typename ...options_t>
 alignment_trace_matrix(database_t && database, query_t && query, align_config_t && config, alignment_score_matrix<alignment_t, options_t...>)
     -> alignment_trace_matrix<database_t, query_t, align_config_t, alignment_score_matrix<alignment_t, options_t...>>;

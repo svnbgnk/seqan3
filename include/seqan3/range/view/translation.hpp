@@ -39,7 +39,7 @@ template <typename urng_t>
 //!\cond
     requires std::ranges::SizedRange<urng_t> &&
              std::ranges::RandomAccessRange<urng_t> &&
-             NucleotideAlphabet<std::decay_t<reference_t<std::decay_t<urng_t>>>>
+             NucleotideAlphabet<reference_t<urng_t>>
 //!\endcond
 class view_translate;
 
@@ -47,7 +47,7 @@ template <typename urng_t>
 //!\cond
     requires std::ranges::SizedRange<urng_t> &&
              std::ranges::RandomAccessRange<urng_t> &&
-             NucleotideAlphabet<std::decay_t<reference_t<std::decay_t<urng_t>>>>
+             NucleotideAlphabet<reference_t<urng_t>>
 //!\endcond
 class view_translate_single;
 
@@ -148,7 +148,7 @@ template <typename urng_t>
 //!\cond
     requires std::ranges::SizedRange<urng_t> &&
              std::ranges::RandomAccessRange<urng_t> &&
-             NucleotideAlphabet<std::decay_t<reference_t<std::decay_t<urng_t>>>>
+             NucleotideAlphabet<reference_t<urng_t>>
 //!\endcond
 class view_translate_single
 {
@@ -370,7 +370,7 @@ template <typename urng_t>
 //!\cond
     requires std::ranges::SizedRange<urng_t> &&
              std::ranges::RandomAccessRange<urng_t> &&
-             NucleotideAlphabet<std::decay_t<reference_t<std::decay_t<urng_t>>>>
+             NucleotideAlphabet<reference_t<urng_t>>
 //!\endcond
 view_translate_single(urng_t &&, translation_frames const) -> view_translate_single<urng_t>;
 
@@ -379,7 +379,7 @@ template <typename urng_t>
 //!\cond
     requires std::ranges::SizedRange<urng_t> &&
              std::ranges::RandomAccessRange<urng_t> &&
-             NucleotideAlphabet<std::decay_t<reference_t<std::decay_t<urng_t>>>>
+             NucleotideAlphabet<reference_t<urng_t>>
 //!\endcond
 view_translate_single(urng_t &&) -> view_translate_single<urng_t>;
 
@@ -406,6 +406,11 @@ namespace seqan3::view
  * \details
  *
  * This view can be used to translate nucleotide sequences into aminoacid sequences (see translation_frames for possible combination of frames).
+ *
+ * **Header**
+ * ```cpp
+ *      #include <seqan3/range/view/translation.hpp>
+ * ```
  *
  * ### View properties
  *
@@ -459,7 +464,7 @@ template <typename urng_t>
 //!\cond
     requires std::ranges::SizedRange<urng_t> &&
              std::ranges::RandomAccessRange<urng_t> &&
-             NucleotideAlphabet<std::decay_t<reference_t<std::decay_t<urng_t>>>>
+             NucleotideAlphabet<reference_t<urng_t>>
 //!\endcond
 class view_translate
 {
@@ -499,7 +504,7 @@ public:
 
 protected:
     /*!\name Compatibility
-     * \brief Static constexpr variables that emulate/encapsulate seqan3::compatible_concept (which doesn't work for types during their definition).
+     * \brief Static constexpr variables that emulate/encapsulate seqan3::Compatible (which doesn't work for types during their definition).
      * \{
      */
     //!\cond
@@ -658,7 +663,7 @@ template <typename urng_t>
 //!\cond
     requires std::ranges::SizedRange<urng_t> &&
              std::ranges::RandomAccessRange<urng_t> &&
-             NucleotideAlphabet<std::decay_t<reference_t<std::decay_t<urng_t>>>>
+             NucleotideAlphabet<reference_t<urng_t>>
 //!\endcond
 view_translate(urng_t &&, translation_frames const = translation_frames{}) -> view_translate<urng_t>;
 
@@ -685,6 +690,11 @@ namespace seqan3::view
  * \details
  *
  * This view can be used to translate nucleotide sequences into aminoacid sequences (see translation_frames for possible combination of frames).
+ *
+ * **Header**
+ * ```cpp
+ *      #include <seqan3/range/view/translation.hpp>
+ * ```
  *
  * ### View properties
  *

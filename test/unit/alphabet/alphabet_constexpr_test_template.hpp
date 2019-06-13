@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <seqan3/alphabet/concept.hpp>
-#include <seqan3/io/stream/debug_stream.hpp>
+#include <seqan3/core/debug_stream.hpp>
 
 #if SEQAN3_WITH_CEREAL
 #include <seqan3/test/tmp_filename.hpp>
@@ -34,7 +34,15 @@ TYPED_TEST_P(alphabet_constexpr, concept_check)
 {
     EXPECT_TRUE(detail::ConstexprAlphabet<TypeParam   >);
     EXPECT_TRUE(detail::ConstexprAlphabet<TypeParam & >);
-    EXPECT_TRUE(detail::ConstexprAlphabet<TypeParam &&>);
+
+    EXPECT_TRUE(detail::ConstexprAlphabet<TypeParam const   >);
+    EXPECT_TRUE(detail::ConstexprAlphabet<TypeParam const & >);
+
+    EXPECT_TRUE(detail::WritableConstexprAlphabet<TypeParam   >);
+    EXPECT_TRUE(detail::WritableConstexprAlphabet<TypeParam & >);
+
+    EXPECT_FALSE(detail::WritableConstexprAlphabet<TypeParam const   >);
+    EXPECT_FALSE(detail::WritableConstexprAlphabet<TypeParam const & >);
 }
 
 TYPED_TEST_P(alphabet_constexpr, default_value_constructor)
@@ -64,13 +72,13 @@ TYPED_TEST_P(alphabet_constexpr, move_constructor)
 
 TYPED_TEST_P(alphabet_constexpr, global_assign_rank)
 {
-    constexpr size_t rank = 1 % alphabet_size_v<TypeParam>;
+    constexpr size_t rank = 1 % alphabet_size<TypeParam>;
     [[maybe_unused]] constexpr TypeParam t0{assign_rank_to(rank, TypeParam{})};
 }
 
 TYPED_TEST_P(alphabet_constexpr, global_to_rank)
 {
-    constexpr size_t rank = 1 % alphabet_size_v<TypeParam>;
+    constexpr size_t rank = 1 % alphabet_size<TypeParam>;
     constexpr TypeParam t0{assign_rank_to(rank, TypeParam{})};
     constexpr bool b = (to_rank(t0) == rank);
     EXPECT_TRUE(b);
@@ -78,7 +86,7 @@ TYPED_TEST_P(alphabet_constexpr, global_to_rank)
 
 TYPED_TEST_P(alphabet_constexpr, copy_assignment)
 {
-    constexpr size_t rank = 1 % alphabet_size_v<TypeParam>;
+    constexpr size_t rank = 1 % alphabet_size<TypeParam>;
     constexpr TypeParam t0{assign_rank_to(rank, TypeParam{})};
     // constexpr context:
     constexpr TypeParam t3 = [&] () constexpr
@@ -94,7 +102,7 @@ TYPED_TEST_P(alphabet_constexpr, copy_assignment)
 
 TYPED_TEST_P(alphabet_constexpr, move_assignment)
 {
-    constexpr size_t rank = 1 % alphabet_size_v<TypeParam>;
+    constexpr size_t rank = 1 % alphabet_size<TypeParam>;
     constexpr TypeParam t0{assign_rank_to(rank, TypeParam{})};
     // constexpr context:
     constexpr TypeParam t3 = [&] () constexpr
@@ -121,7 +129,7 @@ TYPED_TEST_P(alphabet_constexpr, global_to_char)
 
 TYPED_TEST_P(alphabet_constexpr, comparison_operators)
 {
-    if constexpr (alphabet_size_v<TypeParam> == 1)
+    if constexpr (alphabet_size<TypeParam> == 1)
     {
         constexpr TypeParam t0{};
         constexpr TypeParam t1{};

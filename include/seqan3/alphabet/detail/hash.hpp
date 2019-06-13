@@ -23,7 +23,7 @@ namespace std
  */
 template <typename alphabet_t>
     //!\cond
-    requires seqan3::Semialphabet<seqan3::delete_const_t<alphabet_t>>
+    requires seqan3::Semialphabet<alphabet_t>
     //!\endcond
 struct hash<alphabet_t>
 {
@@ -48,7 +48,7 @@ struct hash<alphabet_t>
  */
 template <ranges::InputRange urng_t>
     //!\cond
-    requires seqan3::Semialphabet<seqan3::delete_const_t<seqan3::reference_t<urng_t>>>
+    requires seqan3::Semialphabet<seqan3::reference_t<urng_t>>
     //!\endcond
 struct hash<urng_t>
 {
@@ -65,7 +65,7 @@ struct hash<urng_t>
         hash<alphabet_t> h{};
         for (auto const character : range)
         {
-            result *= seqan3::alphabet_size_v<alphabet_t>;
+            result *= seqan3::alphabet_size<alphabet_t>;
             result += h(character);
         }
         return result;

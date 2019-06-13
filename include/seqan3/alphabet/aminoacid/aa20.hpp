@@ -24,9 +24,11 @@ namespace seqan3
 /*!\brief The canonical amino acid alphabet.
  * \ingroup aminoacid
  * \implements seqan3::AminoacidAlphabet
- * \implements seqan3::detail::ConstexprAlphabet
+ * \implements seqan3::WritableAlphabet
+ * \if DEV \implements seqan3::detail::WritableConstexprAlphabet \endif
  * \implements seqan3::TriviallyCopyable
  * \implements seqan3::StandardLayout
+ * \implements std::Regular
  *
  * \details
  * The alphabet consists of letters A, C, D, E, F, G, H, I, K, L, M, N, P, Q, R, S, T, V, W, Y
@@ -84,7 +86,7 @@ public:
 
 protected:
     //!\brief Value to char conversion table.
-    static constexpr char_type rank_to_char[value_size]
+    static constexpr char_type rank_to_char[alphabet_size]
     {
         'A',
         'C',
@@ -120,7 +122,7 @@ protected:
                 c = 15; // value of 'S', because that appears most frequently
 
             // reverse mapping for characters and their lowercase
-            for (rank_type rnk = 0u; rnk < value_size; ++rnk)
+            for (rank_type rnk = 0u; rnk < alphabet_size; ++rnk)
             {
                 ret[static_cast<rank_type>(         rank_to_char[rnk]) ] = rnk;
                 ret[static_cast<rank_type>(to_lower(rank_to_char[rnk]))] = rnk;

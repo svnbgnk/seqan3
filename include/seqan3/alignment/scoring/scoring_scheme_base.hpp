@@ -47,6 +47,8 @@ struct match_score : detail::strong_type<score_type, match_score<score_type>, de
  * \relates seqan3::match_score
  * \{
  */
+
+//!\brief Deduce the score type from the provided argument.
 template <Arithmetic score_type>
 match_score(score_type &&) -> match_score<score_type>;
 //!\}
@@ -70,6 +72,8 @@ struct mismatch_score : detail::strong_type<score_type, mismatch_score<score_typ
  * \relates seqan3::mismatch_score
  * \{
  */
+
+//!\brief Deduce the score type from the provided argument.
 template <Arithmetic score_type>
 mismatch_score(score_type &&) -> mismatch_score<score_type>;
 //!\}
@@ -98,11 +102,11 @@ public:
     //!\brief Type of the score values.
     using score_type = score_t;
     //!\brief Size type that can hold the dimension of the matrix (i.e. size of the alphabet).
-    using matrix_size_type = std::remove_const_t<decltype(alphabet_size_v<alphabet_t>)>;
+    using matrix_size_type = std::remove_const_t<decltype(alphabet_size<alphabet_t>)>;
     //!\}
 
     //!\brief Size of the matrix dimensions (i.e. size of the alphabet).
-    static constexpr matrix_size_type matrix_size = alphabet_size_v<alphabet_t>;
+    static constexpr matrix_size_type matrix_size = alphabet_size<alphabet_t>;
 
     /*!\name Member types
      * \{
@@ -220,11 +224,14 @@ public:
 
     //!\name Comparison operators
     //!\{
+
+    //!\brief Checks whether `*this` is equal to `rhs`.
     constexpr bool operator==(derived_t const & rhs) const noexcept
     {
         return matrix == rhs.matrix;
     }
 
+    //!\brief Checks whether `*this` is not equal to `rhs`.
     constexpr bool operator!=(derived_t const & rhs) const noexcept
     {
         return matrix != rhs.matrix;

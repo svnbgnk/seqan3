@@ -71,7 +71,7 @@ class bitcompressed_vector
 {
 private:
     //!\brief The number of bits needed to represent a single letter of the alphabet_type.
-    static constexpr size_t bits_per_letter = std::ceil(std::log2(alphabet_size_v<alphabet_type>));
+    static constexpr size_t bits_per_letter = std::ceil(std::log2(alphabet_size<alphabet_type>));
 
     static_assert(bits_per_letter <= 64, "Alphabet must be representable in at most 64bit.");
 
@@ -131,7 +131,7 @@ private:
         //!\}
     };
 
-    static_assert(Alphabet<reference_proxy_type>);
+    static_assert(WritableAlphabet<reference_proxy_type>);
     //!\cond
     //NOTE(h-2): it is entirely unclear to me why we need this
     template <typename t>
@@ -971,33 +971,41 @@ public:
     }
     //!\}
 
-    //!\name Comparison operators
-    //!\{
+    /*!\name Comparison operators
+     * \{
+     */
+
+    //!\brief Checks whether `*this` is equal to `rhs`.
     constexpr bool operator==(bitcompressed_vector const & rhs) const noexcept
     {
         return data == rhs.data;
     }
 
+    //!\brief Checks whether `*this` is not equal to `rhs`.
     constexpr bool operator!=(bitcompressed_vector const & rhs) const noexcept
     {
         return data != rhs.data;
     }
 
+    //!\brief Checks whether `*this` is less than `rhs`.
     constexpr bool operator<(bitcompressed_vector const & rhs) const noexcept
     {
         return data < rhs.data;
     }
 
+    //!\brief Checks whether `*this` is greater than `rhs`.
     constexpr bool operator>(bitcompressed_vector const & rhs) const noexcept
     {
         return data > rhs.data;
     }
 
+    //!\brief Checks whether `*this` is less than or equal to `rhs`.
     constexpr bool operator<=(bitcompressed_vector const & rhs) const noexcept
     {
         return data <= rhs.data;
     }
 
+    //!\brief Checks whether `*this` is greater than or equal to `rhs`.
     constexpr bool operator>=(bitcompressed_vector const & rhs) const noexcept
     {
         return data >= rhs.data;

@@ -22,6 +22,7 @@
 #include <seqan3/io/detail/misc.hpp>
 #include <seqan3/io/sequence_file/input_options.hpp>
 #include <seqan3/io/sequence_file/output_options.hpp>
+#include <seqan3/io/stream/iterator.hpp>
 #include <seqan3/io/stream/parse_condition.hpp>
 #include <seqan3/range/detail/misc.hpp>
 #include <seqan3/range/view/char_to.hpp>
@@ -237,11 +238,11 @@ public:
     {
         if constexpr (!(detail::decays_to_ignore_v<seq_type>))
         {
-            static_assert(std::ranges::ForwardRange<seq_type> && Alphabet<value_type_t<seq_type>>,
+            static_assert(std::ranges::ForwardRange<seq_type> && Alphabet<reference_t<seq_type>>,
                           "The sequence must model std::ranges::ForwardRange and its value type must model "
                           "seqan3::Alphabet.");
         }
-        std::ranges::ostreambuf_iterator stream_it{stream};
+        seqan3::ostreambuf_iterator stream_it{stream};
         // ID
         if constexpr (detail::decays_to_ignore_v<id_type>)
             stream_it = '*';
