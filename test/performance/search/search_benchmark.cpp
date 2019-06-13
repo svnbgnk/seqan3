@@ -7,7 +7,6 @@
 
 #include <benchmark/benchmark.h>
 
-#include <iostream>
 #include <memory>
 #include <random>
 #include <utility>
@@ -17,12 +16,7 @@
 #include <seqan3/alphabet/nucleotide/dna4.hpp>
 #include <seqan3/search/algorithm/all.hpp>
 #include <seqan3/test/performance/sequence_generator.hpp>
-#include <seqan3/test/performance/units.hpp>
-#include <seqan3/io/all.hpp>
 #include <stdlib.h>
-
-
-
 
 using namespace seqan3;
 using namespace seqan3::test;
@@ -120,7 +114,6 @@ auto generate_repeating_sequence(size_t const template_length = 5000,
                                  double const repeats_length = 1,
                                  size_t const seed = 0)
 {
-    //TODO add option to take smaller parts of seqTemplate
     std::vector<alphabet_t> seqTemplate = generate_sequence<alphabet_t>(template_length, 0, seed);
 
     size_t len = template_length * repeats_length;
