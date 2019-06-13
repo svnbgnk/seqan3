@@ -28,7 +28,7 @@ using namespace seqan3;
 using namespace seqan3::test;
 
 template <Alphabet alphabet_t>
-void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0)
+void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed)
 {
     std::mt19937 gen(seed);
     std::uniform_int_distribution<uint8_t> dis_alpha(0, alphabet_size<alphabet_t> - 1);
@@ -38,7 +38,7 @@ void mutate_insertion(std::vector<alphabet_t> & seq, size_t const overlap, size_
 }
 
 template <Alphabet alphabet_t>
-void mutate_deletion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0)
+void mutate_deletion(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed)
 {
     std::mt19937 gen(seed);
     std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(seq) - overlap);
@@ -46,7 +46,7 @@ void mutate_deletion(std::vector<alphabet_t> & seq, size_t const overlap, size_t
 }
 
 template <Alphabet alphabet_t>
-void mutate_substitution(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed = 0)
+void mutate_substitution(std::vector<alphabet_t> & seq, size_t const overlap, size_t const seed)
 {
     std::mt19937 gen(seed);
     std::uniform_int_distribution<uint8_t> dis_alpha_short(0, alphabet_size<alphabet_t> - 2);
@@ -74,6 +74,7 @@ auto generate_reads(std::vector<alphabet_t> & ref,
     std::uniform_int_distribution<size_t> seeds (0, SIZE_MAX);
     std::normal_distribution<> dis_error_count{0, simulated_errors_v};
     std::uniform_real_distribution<double> probability(0.0, 1.0);
+
     for (size_t i = 0; i < number_of_reads; ++i)
     {
         //TODO avoid mutating the same position multiple times
@@ -83,7 +84,6 @@ auto generate_reads(std::vector<alphabet_t> & ref,
             simulated_errors = std::round(simulated_errors_v);
         else
             simulated_errors = abs(std::round(dis_error_count(gen)));
-//         debug_stream << i << ": " << simulated_errors << "\n";
 
         std::uniform_int_distribution<size_t> random_pos(0, std::ranges::size(ref) - read_length - simulated_errors);
         size_t rpos = random_pos(gen);
@@ -114,25 +114,49 @@ auto generate_reads(std::vector<alphabet_t> & ref,
     return reads;
 }
 
+template <typename alphabet_t>
+auto generate_repeating_sequence(size_t const template_length = 5000,
+                                 size_t const repeats = 20,
+                                 double const repeats_length = 1,
+                                 size_t const seed = 0)
+{
+    //TODO add option to take smaller parts of seqTemplate
+    std::vector<alphabet_t> seqTemplate = generate_sequence<alphabet_t>(template_length, 0, seed);
+
+    size_t len = template_length * repeats_length;
+    int simulated_errors = 5;
+    len = (len + simulated_errors  > template_length) ? template_length - simulated_errors : len;
+    std::vector<std::vector<alphabet_t> > collection = generate_reads(seqTemplate, repeats, len, simulated_errors, 0.15, 0.15);
+
+    std::vector<alphabet_t> ref;
+    for(std::vector<alphabet_t> seq : collection){
+        ref.insert(ref.end(), seq.begin(), seq.end());
+    }
+
+    return ref;
+}
+
 //============================================================================
 //  undirectional; trivial_search, single, dna4, all-mapping
 //============================================================================
 
 void unidirectional_search_all(benchmark::State & state)
 {
-
     size_t const sequence_length = state.range(0);
-    size_t const number_of_reads = state.range(1);
-    size_t const read_length = state.range(2);
-    double const prob_insertion = static_cast<double>(state.range(3))/100;
-    double const prob_deletion = static_cast<double>(state.range(4))/100;
-    double const simulated_errors = state.range(5);
-    uint8_t const searched_errors = state.range(6);
+    size_t const repeating = state.range(1);
+    size_t const number_of_reads = state.range(2);
+    size_t const read_length = state.range(3);
+    double const prob_insertion = static_cast<double>(state.range(4))/100;
+    double const prob_deletion = static_cast<double>(state.range(5))/100;
+    double const simulated_errors = static_cast<double>(state.range(6))/100;
+    uint8_t const searched_errors = state.range(7);
 
+    int repeats = 20;
+    std::vector<seqan3::dna4> ref = (repeating) ? generate_repeating_sequence<seqan3::dna4>(sequence_length/repeats, repeats, 1, 0) :
+                                                  generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
 
-    std::vector<seqan3::dna4> ref = generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
     fm_index<std::vector<seqan3::dna4> > index{ref};
-    std::vector<std::vector<seqan3::dna4> > reads = generate_reads(ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+    std::vector<std::vector<seqan3::dna4> > reads = generate_reads(ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion, true);
     configuration cfg = search_cfg::max_error{search_cfg::total{searched_errors}};
     for (auto _ : state)
     {
@@ -146,17 +170,21 @@ void unidirectional_search_all(benchmark::State & state)
 
 void bidirectional_search_all(benchmark::State & state)
 {
-    double const simulated_errors = state.range(0);
-    uint8_t const searched_errors = state.range(1);
-    size_t sequence_length{100'000};
-    int number_of_reads{100};
-    size_t read_length{100};
-    float prob_insertion{0.18};
-    float prob_deletion{0.18};
+    size_t const sequence_length = state.range(0);
+    size_t const repeating = state.range(1);
+    size_t const number_of_reads = state.range(2);
+    size_t const read_length = state.range(3);
+    double const prob_insertion = static_cast<double>(state.range(4))/100;
+    double const prob_deletion = static_cast<double>(state.range(5))/100;
+    double const simulated_errors = static_cast<double>(state.range(6))/100;
+    uint8_t const searched_errors = state.range(7);
 
-    std::vector<seqan3::dna4> ref = generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
+    int repeats = 20;
+    std::vector<seqan3::dna4> ref = (repeating) ? generate_repeating_sequence<seqan3::dna4>(sequence_length/repeats, repeats, 1, 0) :
+                                                  generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
+
     bi_fm_index<std::vector<dna4> > index{ref};
-    std::vector<std::vector<seqan3::dna4> > reads = generate_reads(ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion);
+    std::vector<std::vector<seqan3::dna4> > reads = generate_reads(ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion, true);
     configuration cfg = search_cfg::max_error{search_cfg::total{searched_errors}};
 
     for (auto _ : state)
@@ -172,15 +200,20 @@ void bidirectional_search_all(benchmark::State & state)
 void unidirectional_search_stratified(benchmark::State & state)
 {
     size_t const sequence_length = state.range(0);
-    size_t const number_of_reads = state.range(1);
-    size_t const read_length = state.range(2);
-    double const prob_insertion = static_cast<double>(state.range(3))/100;
-    double const prob_deletion = static_cast<double>(state.range(4))/100;
-    uint8_t const simulated_errors = static_cast<double>(state.range(5))/100;
-    uint8_t const searched_errors = state.range(6);
-    uint8_t const strata = state.range(7);
+    size_t const repeating = state.range(1);
+    size_t const number_of_reads = state.range(2);
+    size_t const read_length = state.range(3);
+    double const prob_insertion = static_cast<double>(state.range(4))/100;
+    double const prob_deletion = static_cast<double>(state.range(5))/100;
+    double const simulated_errors = static_cast<double>(state.range(6))/100;
+    uint8_t const searched_errors = state.range(7);
+    uint8_t const strata = state.range(8);
 
-    std::vector<seqan3::dna4> ref = generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
+    int repeats = 20;
+    std::vector<seqan3::dna4> ref = (repeating) ? generate_repeating_sequence<seqan3::dna4>(sequence_length/repeats, repeats, 1, 0) :
+                                                  generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
+
+
     fm_index<std::vector<seqan3::dna4> > index{ref};
     std::vector<std::vector<seqan3::dna4> > reads = generate_reads(ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion, true);
     configuration cfg = search_cfg::max_error{search_cfg::total{searched_errors}} |
@@ -192,18 +225,27 @@ void unidirectional_search_stratified(benchmark::State & state)
     }
 }
 
+//============================================================================
+//  bidirectional; trivial_search, single, dna4, stratified-all-mapping
+//============================================================================
+
 void bidirectional_search_stratified(benchmark::State & state)
 {
     size_t const sequence_length = state.range(0);
-    size_t const number_of_reads = state.range(1);
-    size_t const read_length = state.range(2);
-    double const prob_insertion = static_cast<double>(state.range(3))/100;
-    double const prob_deletion = static_cast<double>(state.range(4))/100;
-    uint8_t const simulated_errors = static_cast<double>(state.range(5))/100;
-    uint8_t const searched_errors = state.range(6);
-    uint8_t const strata = state.range(7);
+    size_t const repeating = state.range(1);
+    size_t const number_of_reads = state.range(2);
+    size_t const read_length = state.range(3);
+    double const prob_insertion = static_cast<double>(state.range(4))/100;
+    double const prob_deletion = static_cast<double>(state.range(5))/100;
+    double const simulated_errors = static_cast<double>(state.range(6))/100;
+    uint8_t const searched_errors = state.range(7);
+    uint8_t const strata = state.range(8);
 
-    std::vector<seqan3::dna4> ref = generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
+
+    int repeats = 20;
+    std::vector<seqan3::dna4> ref = (repeating) ? generate_repeating_sequence<seqan3::dna4>(sequence_length/repeats, repeats, 1, 0) :
+                                                  generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
+
     bi_fm_index<std::vector<seqan3::dna4> > index{ref};
     std::vector<std::vector<seqan3::dna4> > reads = generate_reads(ref, number_of_reads, read_length, simulated_errors, prob_insertion, prob_deletion, true);
     configuration cfg = search_cfg::max_error{search_cfg::total{searched_errors}} |
@@ -217,38 +259,48 @@ void bidirectional_search_stratified(benchmark::State & state)
 
 
 BENCHMARK(unidirectional_search_all)
-    ->Args({100'000, 100, 100, 18, 18, 0, 1})
-    ->Args({100'000, 100, 100, 18, 18, 1, 1})
-    ->Args({100'000, 100, 100, 18, 18, 0, 3})
-    ->Args({100'000, 100, 100, 18, 18, 1, 3})
-    ->Args({100'000, 100, 100, 18, 18, 2, 3})
-    ->Args({100'000, 100, 100, 18, 18, 3, 3})
-    ->Args({100'000, 100, 100, 18, 18, 3, 3});
+    ->Args({100'000, 0, 100, 50, 18, 18, 100, 0})
+    ->Args({100'000, 0, 100, 50, 18, 18, 100, 1})
+    ->Args({100'000, 0, 100, 50, 18, 18, 100, 2})
+    ->Args({100'000, 0, 100, 50, 18, 18, 100, 3})
+    ->Args({100'000, 0, 100, 50, 18, 18, 200, 0})
+    ->Args({100'000, 0, 100, 50, 18, 18, 200, 1})
+    ->Args({100'000, 0, 100, 50, 18, 18, 200, 2})
+    ->Args({100'000, 0, 100, 50, 18, 18, 200, 3})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 0})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 1})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 2})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 3});
 
 BENCHMARK(bidirectional_search_all)
-    ->Args({0, 1})
-    ->Args({1, 1})
-    ->Args({0, 3})
-    ->Args({1, 3})
-    ->Args({2, 3})
-    ->Args({3, 3});
-
+    ->Args({100'000, 0, 100, 50, 18, 18, 100, 0})
+    ->Args({100'000, 0, 100, 50, 18, 18, 100, 1})
+    ->Args({100'000, 0, 100, 50, 18, 18, 100, 2})
+    ->Args({100'000, 0, 100, 50, 18, 18, 100, 3})
+    ->Args({100'000, 0, 100, 50, 18, 18, 200, 0})
+    ->Args({100'000, 0, 100, 50, 18, 18, 200, 1})
+    ->Args({100'000, 0, 100, 50, 18, 18, 200, 2})
+    ->Args({100'000, 0, 100, 50, 18, 18, 200, 3})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 0})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 1})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 2})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 3});
 
 BENCHMARK(unidirectional_search_stratified)
-    ->Args({100'000, 100, 100, 18, 18, 100, 3, 0})
-    ->Args({100'000, 100, 100, 18, 18, 100, 3, 1})
-    ->Args({100'000, 100, 100, 18, 18, 100, 3, 2})
-    ->Args({100'000, 100, 100, 18, 18, 200, 3, 0})
-    ->Args({100'000, 100, 100, 18, 18, 200, 3, 1})
-    ->Args({100'000, 100, 100, 18, 18, 200, 3, 2});
+    ->Args({100'000, 1, 100, 50, 18, 18, 100, 3, 0})
+    ->Args({100'000, 1, 100, 50, 18, 18, 100, 3, 1})
+    ->Args({100'000, 1, 100, 50, 18, 18, 100, 3, 2})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 3, 0})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 3, 1})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 3, 2});
 
 BENCHMARK(bidirectional_search_stratified)
-    ->Args({100'000, 100, 100, 18, 18, 100, 3, 0})
-    ->Args({100'000, 100, 100, 18, 18, 100, 3, 1})
-    ->Args({100'000, 100, 100, 18, 18, 100, 3, 2})
-    ->Args({100'000, 100, 100, 18, 18, 200, 3, 0})
-    ->Args({100'000, 100, 100, 18, 18, 200, 3, 1})
-    ->Args({100'000, 100, 100, 18, 18, 200, 3, 2});
+    ->Args({100'000, 1, 100, 50, 18, 18, 100, 3, 0})
+    ->Args({100'000, 1, 100, 50, 18, 18, 100, 3, 1})
+    ->Args({100'000, 1, 100, 50, 18, 18, 100, 3, 2})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 3, 0})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 3, 1})
+    ->Args({100'000, 1, 100, 50, 18, 18, 200, 3, 2});
 
 // ============================================================================
 //  instantiate tests
