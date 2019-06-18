@@ -146,7 +146,7 @@ struct Options
 //============================================================================
 //  undirectional; trivial_search, collection, dna4, all-mapping
 //============================================================================
-/*
+
 void unidirectional_search_all_collection(benchmark::State & state, Options && o)
 {
     size_t set_size = 10; 
@@ -165,7 +165,7 @@ void unidirectional_search_all_collection(benchmark::State & state, Options && o
 
     for (auto _ : state)
         auto results = search(reads, index, cfg);
-}*/
+}
 
 //============================================================================
 //  undirectional; trivial_search, single, dna4, all-mapping
@@ -237,11 +237,11 @@ void bidirectional_search_stratified(benchmark::State & state, Options && o)
         auto results = search(reads, index, cfg);
 }
 
-/*
+
 BENCHMARK_CAPTURE(unidirectional_search_all_collection, highErrorReadsSearch0, Options{10'000, false, 10, 50, 0.18, 0.18, 3, 0, 0});
 BENCHMARK_CAPTURE(unidirectional_search_all_collection, highErrorReadsSearch1, Options{10'000, false, 10, 50, 0.18, 0.18, 3, 1, 0});
 BENCHMARK_CAPTURE(unidirectional_search_all_collection, highErrorReadsSearch2, Options{10'000, false, 10, 50, 0.18, 0.18, 3, 2, 0});
-BENCHMARK_CAPTURE(unidirectional_search_all_collection, highErrorReadsSearch3, Options{10'000, false, 10, 50, 0.18, 0.18, 3, 3, 0});*/
+BENCHMARK_CAPTURE(unidirectional_search_all_collection, highErrorReadsSearch3, Options{10'000, false, 10, 50, 0.18, 0.18, 3, 3, 0});
 
 BENCHMARK_CAPTURE(unidirectional_search_all, lowErrorReadsSearch0, Options{100'000, false, 50, 50, 0.18, 0.18, 1, 0, 0});
 BENCHMARK_CAPTURE(unidirectional_search_all, lowErrorReadsSearch1, Options{100'000, false, 50, 50, 0.18, 0.18, 1, 1, 0});
