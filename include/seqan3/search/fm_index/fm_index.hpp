@@ -169,6 +169,10 @@ protected:
     //!\brief Underlying index from the SDSL.
     sdsl_index_type index;
 
+    dna4_vector text;
+
+    std::vector<dna4_vector> collection;
+
     //!\brief Bitvector storing begin positions for collections.
     sdsl::sd_vector<> text_begin;
     //!\brief Select support for text_begin.

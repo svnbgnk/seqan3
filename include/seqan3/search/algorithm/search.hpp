@@ -97,9 +97,79 @@ inline auto search(queries_t && queries, index_t const & index, configuration_t 
     }
 }
 
+template <FmIndex index_t, typename text_t>
+inline auto saveText(index_t & index, text_t const & text)
+{
+    index.text = text;
+}
+
+template <FmIndex index_t, typename text_t>
+inline auto saveCollection(index_t & index, text_t const & text)
+{
+    index.collection = text;
+}
+
+template <FmIndex index_t, typename text_t, typename queries_t, typename configuration_t>
+//!\cond
+    requires
+        (std::ranges::RandomAccessRange<queries_t> ||
+            (std::ranges::ForwardRange<queries_t> && std::ranges::RandomAccessRange<value_type_t<queries_t>>)) &&
+        detail::is_type_specialisation_of_v<remove_cvref_t<configuration_t>, configuration>
+//!\endcond
+inline auto search(queries_t && queries, index_t & index, text_t const & text, configuration_t const & cfg)
+{
+    assert(alphabet_size<innermost_value_type_t<queries_t>> == index.sigma);
+
+
+//     if(dimension_v<text_t> != 1)
+//         saveCollection(index, text);
+//     else
+        saveText(index, text);
+
+
+    using cfg_t = remove_cvref_t<configuration_t>;
+
+    if constexpr (cfg_t::template exists<search_cfg::max_error>())
+    {
+        auto & [total, subs, ins, del] = get<search_cfg::max_error>(cfg).value;
+        if (subs > total)
+            throw std::invalid_argument("The substitution error threshold is higher than the total error threshold.");
+        if (ins > total)
+            throw std::invalid_argument("The insertion error threshold is higher than the total error threshold.");
+        if (del > total)
+            throw std::invalid_argument("The deletion error threshold is higher than the total error threshold.");
+    }
+    else if constexpr (cfg_t::template exists<search_cfg::max_error_rate>())
+    {
+        auto & [total, subs, ins, del] = get<search_cfg::max_error_rate>(cfg).value;
+        if (subs > total)
+            throw std::invalid_argument("The substitution error threshold is higher than the total error threshold.");
+        if (ins > total)
+            throw std::invalid_argument("The insertion error threshold is higher than the total error threshold.");
+        if (del > total)
+            throw std::invalid_argument("The deletion error threshold is higher than the total error threshold.");
+    }
+
+    if constexpr (cfg_t::template exists<search_cfg::mode>())
+    {
+        if constexpr (cfg_t::template exists<search_cfg::output>())
+            return detail::search_all(index, queries, cfg);
+        else
+            return detail::search_all(index, queries, cfg | search_cfg::output{search_cfg::text_position});
+    }
+    else
+    {
+        configuration const cfg2 = cfg | search_cfg::mode{search_cfg::all};
+        if constexpr (cfg_t::template exists<search_cfg::output>())
+            return detail::search_all(index, queries, cfg2);
+        else
+            return detail::search_all(index, queries, cfg2 | search_cfg::output{search_cfg::text_position});
+    }
+}
+
 //! \overload
 template <FmIndex index_t, typename configuration_t>
-inline auto search(char const * const queries, index_t const & index, configuration_t const & cfg)
+inline auto search(char const * const queries, index_t & index, configuration_t const & cfg)
 {
     return search(std::string_view{queries}, index, cfg);
 }
@@ -107,7 +177,7 @@ inline auto search(char const * const queries, index_t const & index, configurat
 //! \overload
 template <FmIndex index_t, typename configuration_t>
 inline auto search(std::initializer_list<char const * const> const & queries,
-                   index_t const & index,
+                   index_t & index,
                    configuration_t const & cfg)
 {
     std::vector<std::string_view> query;
@@ -138,7 +208,7 @@ template <FmIndex index_t, typename queries_t>
     requires std::ranges::RandomAccessRange<queries_t> ||
              (std::ranges::ForwardRange<queries_t> && std::ranges::RandomAccessRange<value_type_t<queries_t>>)
 //!\endcond
-inline auto search(queries_t && queries, index_t const & index)
+inline auto search(queries_t && queries, index_t & index)
 {
     assert(alphabet_size<innermost_value_type_t<queries_t>> == index.sigma);
 
@@ -160,7 +230,7 @@ inline auto search(index_t const & index, char const * const queries)
 
 //! \overload
 template <FmIndex index_t>
-inline auto search(std::initializer_list<char const * const> const & queries, index_t const & index)
+inline auto search(std::initializer_list<char const * const> const & queries, index_t & index)
 {
     std::vector<std::string_view> query;
     query.reserve(std::ranges::size(queries));

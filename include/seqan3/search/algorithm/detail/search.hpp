@@ -78,14 +78,24 @@ inline auto search_single(index_t const & index, query_t & query, configuration_
         internal_hits.push_back(it);
     };
 
+    using hit_t = std::conditional_t<index_t::is_collection_,
+                                    std::pair<typename index_t::size_type, typename index_t::size_type>,
+                                    typename index_t::size_type>;
+
+    std::vector<hit_t> internal_itv_hits;
+    auto internal_itv_delegate = [&internal_itv_hits, &max_error] (auto const & pos)
+    {
+        internal_itv_hits.push_back(pos);
+    };
+
     // choose mode
     if constexpr (cfg_t::template exists<search_cfg::mode<detail::search_mode_best>>())
     {
         detail::search_param max_error2{max_error};
         max_error2.total = 0;
-        while (internal_hits.empty() && max_error2.total <= max_error.total)
+        while (internal_hits.empty() && internal_itv_hits.empty() && max_error2.total <= max_error.total)
         {
-            detail::search_algo<true>(index, query, max_error2, internal_delegate);
+            detail::search_algo<true>(index, query, max_error2, internal_delegate, internal_itv_delegate);
             max_error2.total++;
         }
     }
@@ -93,9 +103,9 @@ inline auto search_single(index_t const & index, query_t & query, configuration_
     {
         detail::search_param max_error2{max_error};
         max_error2.total = 0;
-        while (internal_hits.empty() && max_error2.total <= max_error.total)
+        while (internal_hits.empty() && internal_itv_hits.empty() && max_error2.total <= max_error.total)
         {
-            detail::search_algo<false>(index, query, max_error2, internal_delegate);
+            detail::search_algo<false>(index, query, max_error2, internal_delegate, internal_itv_delegate);
             max_error2.total++;
         }
     }
@@ -103,22 +113,23 @@ inline auto search_single(index_t const & index, query_t & query, configuration_
     {
         detail::search_param max_error2{max_error};
         max_error2.total = 0;
-        while (internal_hits.empty() && max_error2.total <= max_error.total)
+        while (internal_hits.empty() && internal_itv_hits.empty() && max_error2.total <= max_error.total)
         {
-            detail::search_algo<true>(index, query, max_error2, internal_delegate);
+            detail::search_algo<true>(index, query, max_error2, internal_delegate, internal_itv_delegate);
             max_error2.total++;
         }
-        if (!internal_hits.empty())
+        if (!internal_hits.empty() && internal_itv_hits.empty())
         {
             internal_hits.clear(); // TODO: don't clear when using Optimum Search Schemes with lower error bounds
+            internal_itv_hits.clear()
             uint8_t const s = get<search_cfg::mode>(cfg).value;
             max_error2.total += s - 1;
-            detail::search_algo<false>(index, query, max_error2, internal_delegate);
+            detail::search_algo<false>(index, query, max_error2, internal_delegate, internal_itv_delegate);
         }
     }
     else // detail::search_mode_all
     {
-        detail::search_algo<false>(index, query, max_error, internal_delegate);
+        detail::search_algo<false>(index, query, max_error, internal_delegate, internal_itv_delegate);
     }
 
     // TODO: filter hits and only do it when necessary (depending on error types)
@@ -130,9 +141,6 @@ inline auto search_single(index_t const & index, query_t & query, configuration_
     }
     else
     {
-        using hit_t = std::conditional_t<index_t::is_collection_,
-                                         std::pair<typename index_t::size_type, typename index_t::size_type>,
-                                         typename index_t::size_type>;
         std::vector<hit_t> hits;
 
         if constexpr (cfg_t::template exists<search_cfg::mode<detail::search_mode_best>>())
@@ -143,6 +151,11 @@ inline auto search_single(index_t const & index, query_t & query, configuration_
                 auto text_pos = internal_hits[0].lazy_locate();
                 hits.push_back(text_pos[0]);
             }
+            else if (!internal_itv_hits.empty())
+            {
+                //TODO switch since no locate is needed
+                hits.push_back(internal_itv_hits[0]);
+            }
         }
         else
         {
@@ -150,6 +163,7 @@ inline auto search_single(index_t const & index, query_t & query, configuration_
             {
                 for (auto const & text_pos : cur.locate())
                     hits.push_back(text_pos);
+                hits.insert(std::ranges::end(hits), std::ranges::begin(internal_itv_hits), std::ranges::end(internal_itv_hits));
                 std::sort(hits.begin(), hits.end());
                 hits.erase(std::unique(hits.begin(), hits.end()), hits.end());
             }
