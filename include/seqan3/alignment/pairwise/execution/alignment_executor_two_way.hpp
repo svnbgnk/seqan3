@@ -25,6 +25,8 @@
 #include <seqan3/range/views/view_all.hpp>
 #include <seqan3/range/views/zip.hpp>
 #include <seqan3/std/ranges>
+#include <range/v3/view/chunk.hpp>
+#include <range/v3/view/drop_last.hpp>
 
 namespace seqan3::detail
 {
@@ -152,7 +154,7 @@ public:
         if constexpr (std::same_as<execution_handler_t, execution_handler_parallel>)
             init_buffer(std::ranges::distance(resrc));
         else
-            init_buffer(1);
+            init_buffer(10);
     }
 
     /*!\brief Constructs this executor with the passed range of alignment instances.
@@ -252,6 +254,32 @@ private:
         // Apply the alignment execution.
         size_t count = 0;
         size_t buffer_limit = in_avail();
+
+        int chunk_size = 10;
+        for (auto chunked_resource : (resource  | ranges::views::chunk(chunk_size))) //; count < buffer_limit && !is_eof(); ++gptr
+        {
+
+            if(count >= buffer_limit || is_eof()){
+                break;
+            }
+
+            int new_counts = count + std::ranges::distance(chunked_resource);
+            int drop = new_counts > buffer_limit ? (new_counts - buffer_limit) : 0;
+            auto clean_chunked_resource = chunked_resource | ranges::views::drop_last(drop);
+            int clean_chunked_size = std::ranges::distance(clean_chunked_resource);
+            count += clean_chunked_size;
+
+            buffer_pointer write_to = gptr;
+            exec_handler.execute(kernel,
+                                 clean_chunked_resource | views::all,
+                                 [write_to] (auto && res) mutable { *write_to = std::move(res); ++write_to;});
+
+            gptr+= clean_chunked_size;
+            resource_it += clean_chunked_size;
+        }
+
+
+/*
         for (; count < buffer_limit && !is_eof(); ++count, ++resource_it, ++gptr)
         {
             auto && [tpl, idx] = *resource_it;
@@ -262,7 +290,7 @@ private:
                                  first_seq | views::all,
                                  second_seq | views::all,
                                  [write_to] (auto && res) { *write_to = std::move(res); });
-        }
+        }*/
 
         exec_handler.wait();
 
