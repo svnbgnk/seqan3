@@ -36,7 +36,7 @@ public:
      * \tparam delegate_type     The type of the callable invoked on the std::invoke_result of `fn_type`; must model
      *                           std::invocable.
      *
-     * \param[in] func         The callable invoking the alignment algorithm.
+     * \param[in] algorithm    The callable invoking the alignment algorithm.
      * \param[in] idx          The index of the current processed sequence pair.
      * \param[in] first_range  The first range.
      * \param[in] second_range The second range.
@@ -50,7 +50,7 @@ public:
                                                                     first_range_type,
                                                                     second_range_type>>
     //!\endcond
-    void execute(fn_type && func,
+    void execute(fn_type && algorithm,
                  size_t const idx,
                  first_range_type first_range,
                  second_range_type second_range,
@@ -59,7 +59,37 @@ public:
         static_assert(std::ranges::view<first_range_type>, "Expected a view!");
         static_assert(std::ranges::view<second_range_type>, "Expected a view!");
 
-        delegate(func(idx, std::move(first_range), std::move(second_range)));
+        delegate(algorithm(idx, std::move(first_range), std::move(second_range)));
+    }
+
+    /*!\brief Invokes the passed alignment instance in a blocking manner.
+     * \tparam fn_type           The callable that will be invoked.
+     * \tparam job_range_type    The type of the first range; must model std::ranges::view.
+     * \tparam delegate_type     The type of the callable invoked on the std::invoke_result of `fn_type.
+     *
+     * \param[in] algorithm    The callable which will invoked the alignment algorithm.
+     * \param[in] job_range    The range of sequence pairs to be computed.
+     * \param[in] delegate     The callable which will be invoked with the result of the alignment.
+     */
+
+    template <typename fn_type, typename job_range_type, typename delegate_type>
+    void execute(fn_type && algorithm,
+                 job_range_type job_range,
+                 delegate_type && delegate)
+    {
+        static_assert(std::ranges::view<job_range_type>, "Expected a view!");
+
+        for (auto range_iterator = std::ranges::begin(job_range); range_iterator != std::ranges::end(job_range); ++range_iterator)
+        {
+            auto && [tpl, idx] = *range_iterator;
+            debug_stream << tpl << "\n";
+            auto && [first_seq, second_seq] = tpl;
+            execute(algorithm,
+                    idx,
+                    first_seq | views::all,
+                    second_seq | views::all,
+                    delegate);
+        }
     }
 
     //!\brief Waits for the submitted alignments jobs to finish. (Noop).
