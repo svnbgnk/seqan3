@@ -127,6 +127,22 @@ public:
         assert(status == contrib::queue_op_status::success);
     }
 
+    /*!\brief Invokes the passed alignment instance in a non-blocking manner.
+     * \copydetails execution_handler_sequential::execute
+//TODO how to link to execution_handler_sequential::execute(range) maybe it will work as soon as range aware execution_handler_sequential is added
+     */
+    template <typename algorithm_t, std::ranges::forward_range indexed_sequence_pairs_t, typename delegate_type>
+    void execute(algorithm_t && algorithm,
+                 size_t const idx,
+                 indexed_sequence_pairs_t indexed_sequence_pairs,
+                 delegate_type && delegate)
+    {
+        using std::get;
+        for (auto && [sequence_pair, idx] : indexed_sequence_pairs)
+            execute(algorithm, idx, get<0>(sequence_pair), get<1>(sequence_pair), delegate);
+    }
+
+
     //!\brief Waits until all submitted alignment jobs have been processed.
     void wait()
     {
